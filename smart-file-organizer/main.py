@@ -1,834 +1,413 @@
-import os
-import sys
-import json
-import shutil
-import time
-import math
-import winsound
-import threading
-from pathlib import Path
+import os, json, shutil, math, winsound, threading
 from datetime import datetime
 from tkinter import *
-from tkinter import ttk, filedialog, messagebox
+from tkinter import filedialog, messagebox
 from tkinterdnd2 import TkinterDnD, DND_FILES
 
-CONFIG_FILE = "organizer_config.json"
-RECENT_FILE = "recent_folders.json"
-SOUND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sounds")
-
-DEFAULT_CONFIG = {
-    "categories": {
-        "Images": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".webp", ".ico", ".tiff", ".tif"],
-        "Documents": [".pdf", ".doc", ".docx", ".txt", ".xlsx", ".xls", ".pptx", ".ppt", ".csv", ".rtf", ".odt", ".md"],
-        "Videos": [".mp4", ".avi", ".mkv", ".mov", ".wmv", ".flv", ".webm", ".m4v", ".mpg", ".mpeg"],
-        "Audio": [".mp3", ".wav", ".flac", ".aac", ".ogg", ".wma", ".m4a", ".opus"],
-        "Code": [".py", ".js", ".html", ".css", ".java", ".cpp", ".c", ".ts", ".jsx", ".tsx", ".json", ".xml"],
-        "Archives": [".zip", ".rar", ".7z", ".tar", ".gz", ".bz2", ".xz"],
-        "Fonts": [".ttf", ".otf", ".woff", ".woff2", ".eot"],
-        "Design": [".psd", ".ai", ".sketch", ".fig", ".xd"],
-    }
+CFG="config.json"; RECENT="recent.json"
+CATS={
+    "Images": [".jpg",".jpeg",".png",".gif",".bmp",".svg",".webp",".ico",".tiff"],
+    "Documents": [".pdf",".doc",".docx",".txt",".xlsx",".xls",".pptx",".ppt",".csv",".rtf",".md"],
+    "Videos": [".mp4",".avi",".mkv",".mov",".wmv",".flv",".webm",".m4v"],
+    "Audio": [".mp3",".wav",".flac",".aac",".ogg",".wma",".m4a"],
+    "Code": [".py",".js",".html",".css",".java",".cpp",".c",".ts",".json",".xml"],
+    "Archives": [".zip",".rar",".7z",".tar",".gz"],
 }
 
-GOLD = "#d4a843"
-GOLD_DIM = "#a07830"
-GOLD_BRIGHT = "#f0c850"
-BG_DARK = "#0d0d0d"
-BG_CARD = "#1a1a1a"
-BG_INNER = "#141414"
-TEXT = "#e0d8c8"
-TEXT_DIM = "#7a7060"
-BORDER = "#2a2520"
-RED = "#e04040"
-GREEN = "#40c060"
-BLUE = "#4090d0"
-PURPLE = "#9060d0"
-CYAN = "#40c0d0"
-
-
-def play_sound(name):
+def snd(n):
     try:
-        freq_map = {"click": 800, "success": 1200, "error": 300, "drag": 600, "drop": 1000}
-        freq = freq_map.get(name, 800)
-        winsound.Beep(freq, 80)
-    except:
-        pass
+        if n=="ok": winsound.Beep(1200,60); winsound.Beep(1600,60)
+        elif n=="ui": winsound.Beep(1000,30)
+    except: pass
+
+def loadj(p,d):
+    try:
+        if os.path.exists(p):
+            with open(p) as f: return json.load(f)
+    except: pass
+    return d
+def savej(p,d):
+    with open(p,"w") as f: json.dump(d,f,indent=2)
+
+G="#d4a843"; GB="#f0d060"; GD="#9a7830"
+BG="#06060a"; CD="#101018"; CD2="#16161e"; GL="#0a0a12"
+TX="#c8c0b0"; DM="#504838"; BD="#1a1820"
 
 
-class FlowParticle:
-    def __init__(self, w, h):
-        self.w = w
-        self.h = h
-        self.reset(True)
-
-    def reset(self, init=False):
+class Particle:
+    def __init__(s,w,h):
         import random
-        self.x = random.randint(0, self.w) if init else -10
-        self.y = random.randint(0, self.h)
-        self.size = random.uniform(1.5, 3.5)
-        self.base_speed = random.uniform(0.8, 2.5)
-        self.speed_x = self.base_speed
-        self.speed_y = random.uniform(-0.3, 0.3)
-        self.wave_amp = random.uniform(10, 30)
-        self.wave_freq = random.uniform(0.01, 0.03)
-        self.wave_offset = random.uniform(0, math.pi * 2)
-        self.opacity = random.randint(40, 120)
-        self.golden = random.random() < 0.3
-        if self.golden:
-            self.color = GOLD
-            self.opacity = random.randint(80, 160)
+        s.x=random.uniform(0,w); s.y=random.uniform(0,h)
+        s.r=random.uniform(1,2.8); s.vx=random.uniform(0.4,1.6); s.vy=0
+        s.wa=random.uniform(20,50); s.wf=random.uniform(0.006,0.018); s.wo=random.uniform(0,6.28)
+        s.gold=random.random()<0.35
+        s.col=G if s.gold else random.choice(["#2a2018","#1e1810","#151210"])
+        s.w=w; s.h=h
+    def tick(s,t,mx,my):
+        s.x+=s.vx; s.y+=s.vy+math.sin(t*s.wf+s.wo)*0.7
+        dx=mx-s.x; dy=my-s.y; d=math.sqrt(dx*dx+dy*dy)
+        if d<200 and d>1: f=(200-d)/200; s.y+=dy*f*0.02; s.x+=dx*f*0.01
+        s.vx=max(0.2,min(s.vx,2.5))
+        if s.x>s.w+30: s.x=-10
+
+
+class App:
+    def __init__(s):
+        s.root=TkinterDnD.Tk()
+        s.root.title("Smart File Organizer")
+        s.root.geometry("980x780")
+        s.root.minsize(880,680)
+        s.root.configure(bg=BG)
+
+        s.cfg=loadj(CFG,dict(CATS)); s.recent=loadj(RECENT,[])
+        s.folder=StringVar(value="No folder selected")
+        s.stats={}; s.undo=[]; s.log_e=[]; s.busy=False
+        s.mx=0; s.my=0; s.parts=[]; s.t=0; s.run=True
+
+        s.wrap=Frame(s.root,bg=BG); s.wrap.pack(fill=BOTH,expand=True)
+        s.bcv=Canvas(s.wrap,bg=BG,highlightthickness=0); s.bcv.place(x=0,y=0,relwidth=1,relheight=1)
+        s.ct=Frame(s.wrap,bg=BG); s.ct.place(relx=0.5,rely=0.5,anchor=CENTER,relwidth=0.84,relheight=0.93)
+
+        s.root.bind("<Motion>",s._mm)
+        s.root.bind("<Control-Return>",lambda e:s.go())
+
+        s._build(); s._drop(); s._anim(); s._tw()
+        s.root.protocol("WM_DELETE_WINDOW",s._quit)
+
+    def _build(s):
+        # Header
+        s.tw_lbl=Label(s.ct,text="",font=("Segoe UI",28,"bold"),bg=BG,fg=G)
+        s.tw_lbl.pack(pady=(0,4))
+        c=Canvas(s.ct,height=1,bg=BG,highlightthickness=0); c.pack(fill=X,pady=(6,0))
+        c.create_line(0,0,600,0,fill=GD,width=1)
+        Label(s.ct,text="Premium File Management",font=("Segoe UI",10),bg=BG,fg=DM).pack(pady=(6,18))
+
+        # Folder card
+        fc=Frame(s.ct,bg=CD,highlightbackground=BD,highlightthickness=1); fc.pack(fill=X,pady=(0,12))
+        fi=Frame(fc,bg=CD); fi.pack(fill=X,padx=20,pady=14)
+        Label(fi,text="TARGET FOLDER",font=("Segoe UI",9,"bold"),bg=CD,fg=GD).pack(anchor=W)
+        fr=Frame(fi,bg=CD); fr.pack(fill=X,pady=(10,0))
+        Label(fr,textvariable=s.folder,font=("Consolas",11),bg=GL,fg=TX,anchor=W,padx=14,pady=10,highlightbackground=BD,highlightthickness=1).pack(side=LEFT,fill=X,expand=True)
+        Button(fr,text="\u25bc",font=("Segoe UI",8),bg=GL,fg=GD,activebackground=CD2,relief=FLAT,padx=10,pady=5,cursor="hand2",command=s._rmenu,highlightbackground=BD,highlightthickness=1).pack(side=RIGHT,padx=(6,0))
+        s._gbtn(fr,"BROWSE",s._browse,140,40).pack(side=RIGHT,padx=(10,0))
+
+        # Stats card
+        sc=Frame(s.ct,bg=CD,highlightbackground=BD,highlightthickness=1); sc.pack(fill=X,pady=(0,12))
+        si=Frame(sc,bg=CD); si.pack(fill=X,padx=20,pady=14)
+        Label(si,text="FILE ANALYSIS",font=("Segoe UI",9,"bold"),bg=CD,fg=GD).pack(anchor=W)
+        sg=Frame(si,bg=CD); sg.pack(fill=X,pady=(12,0))
+        s.sclbl={}
+        cats=["Total","Images","Documents","Videos","Audio","Code","Other"]
+        cols=[G,"#b08838","#a07830","#906828","#805820","#604818","#484048"]
+        for i,cat in enumerate(cats):
+            cf=Frame(sg,bg=GL,highlightbackground=BD,highlightthickness=1)
+            cf.grid(row=i//4,column=i%4,padx=5,pady=5,sticky="nsew")
+            v=Label(cf,text="0",font=("Segoe UI",22,"bold"),bg=GL,fg=cols[i]); v.pack(pady=(10,2))
+            l=Label(cf,text=cat,font=("Segoe UI",8),bg=GL,fg=DM); l.pack(pady=(0,8))
+            s.sclbl[cat]=v
+        for i in range(4): sg.columnconfigure(i,weight=1)
+
+        # Buttons
+        bf=Frame(s.ct,bg=BG); bf.pack(fill=X,pady=(0,14))
+        s.go_btn=s._gbtn(bf,"ORGANIZE FILES",s.go,240,52); s.go_btn.pack(side=LEFT,padx=(0,12))
+        s.un_btn=s._obtn(bf,"UNDO",s._undo,"#d04040"); s.un_btn.pack(side=LEFT,padx=(0,8)); s._dis(s.un_btn)
+        s.ex_btn=s._obtn(bf,"EXPORT",s._export,"#9070c0"); s.ex_btn.pack(side=LEFT,padx=(0,8))
+        s.st_btn=s._obtn(bf,"SETTINGS",s._settings,"#50c0c8"); s.st_btn.pack(side=LEFT)
+
+        # Progress
+        s.pf=Frame(s.ct,bg=BG)
+        pb=Frame(s.pf,bg=GL,highlightbackground=BD,highlightthickness=1); pb.pack(fill=X,ipady=2)
+        s.pbar=Canvas(pb,bg=GL,highlightthickness=0,height=5); s.pbar.pack(fill=X,padx=2,pady=2)
+        s.plbl=Label(s.pf,text="",font=("Segoe UI",9),bg=BG,fg=DM); s.plbl.pack(anchor=W,pady=(6,0))
+
+        # Log
+        lc=Frame(s.ct,bg=CD,highlightbackground=BD,highlightthickness=1); lc.pack(fill=BOTH,expand=True)
+        li=Frame(lc,bg=CD); li.pack(fill=BOTH,expand=True,padx=20,pady=14)
+        Label(li,text="ACTIVITY LOG",font=("Segoe UI",9,"bold"),bg=CD,fg=GD).pack(anchor=W)
+        lcc=Frame(li,bg=GL,highlightbackground=BD,highlightthickness=1); lcc.pack(fill=BOTH,expand=True,pady=(10,0))
+        s.lcv=Canvas(lcc,bg=GL,highlightthickness=0)
+        sb=Scrollbar(lcc,command=s.lcv.yview,bg=BD,troughcolor=GL)
+        s.lin=Frame(s.lcv,bg=GL)
+        s.lin.bind("<Configure>",lambda e:s.lcv.configure(scrollregion=s.lcv.bbox("all")))
+        s.lcv.create_window((0,0),window=s.lin,anchor="nw",width=720)
+        s.lcv.configure(yscrollcommand=sb.set)
+        sb.pack(side=RIGHT,fill=Y); s.lcv.pack(fill=BOTH,expand=True)
+
+    # Gold button
+    def _gbtn(s,p,text,cmd,w,h):
+        f=Frame(p,bg=BG)
+        cv=Canvas(f,width=w,height=h,bg=BG,highlightthickness=0,cursor="hand2"); cv.pack()
+        hov=[False]; prs=[False]
+        def draw():
+            cv.delete("all")
+            if hov[0] and not prs[0]:
+                for i in range(4,0,-1): cv.create_rectangle(2-i,2-i,w-2+i,h-2+i,outline=GD,width=1)
+            fill=GD if prs[0] else (GB if hov[0] else G)
+            out=G if hov[0] else GD
+            cv.create_rectangle(2,2,w-2,h-2,fill=fill,outline=out,width=1)
+            cv.create_text(w//2,h//2,text=text,fill=BG,font=("Segoe UI",12,"bold"))
+        def ent(e): hov[0]=True; draw(); snd("ui")
+        def lev(e): hov[0]=False; prs[0]=False; draw()
+        def prs_(e): prs[0]=True; draw()
+        def rel(e): prs[0]=False; draw(); snd("ok"); cmd()
+        cv.bind("<Enter>",ent); cv.bind("<Leave>",lev)
+        cv.bind("<ButtonPress-1>",prs_); cv.bind("<ButtonRelease-1>",rel)
+        def setstate(st):
+            if st==DISABLED: cv.config(cursor=""); cv.unbind("<Enter>"); cv.unbind("<Leave>"); cv.unbind("<ButtonPress-1>"); cv.unbind("<ButtonRelease-1>")
+            else: cv.config(cursor="hand2"); cv.bind("<Enter>",ent); cv.bind("<Leave>",lev); cv.bind("<ButtonPress-1>",prs_); cv.bind("<ButtonRelease-1>",rel)
+        f._set=setstate; return f
+
+    def _obtn(s,p,text,cmd,color):
+        f=Frame(p,bg=BG)
+        cv=Canvas(f,width=120,height=40,bg=BG,highlightthickness=0,cursor="hand2"); cv.pack()
+        hov=[False]
+        def draw():
+            cv.delete("all")
+            if hov[0]:
+                cv.create_rectangle(1,1,119,39,fill=CD2,outline=color,width=1)
+                cv.create_text(60,20,text=text,fill=color,font=("Segoe UI",10,"bold"))
+            else:
+                cv.create_rectangle(1,1,119,39,fill=CD,outline=BD,width=1)
+                cv.create_text(60,20,text=text,fill=color,font=("Segoe UI",10))
+        def ent(e): hov[0]=True; draw(); snd("ui")
+        def lev(e): hov[0]=False; draw()
+        cv.bind("<Enter>",ent); cv.bind("<Leave>",lev)
+        cv.bind("<ButtonRelease-1>",lambda e:(snd("ok"),cmd()))
+        def setstate(st):
+            if st==DISABLED: cv.config(cursor=""); cv.unbind("<Enter>"); cv.unbind("<Leave>"); cv.unbind("<ButtonRelease-1>")
+            else: cv.config(cursor="hand2"); cv.bind("<Enter>",ent); cv.bind("<Leave>",lev); cv.bind("<ButtonRelease-1>",lambda e:(snd("ok"),cmd()))
+        f._set=setstate; return f
+
+    def _dis(s,b):
+        try: b._set(DISABLED)
+        except: pass
+    def _en(s,b):
+        try: b._set(NORMAL)
+        except: pass
+
+    # Typewriter
+    def _tw(s):
+        s.ttxt="SMART FILE ORGANIZER"; s.ti=0; s.td=False; s._twk()
+    def _twk(s):
+        if not s.run: return
+        if not s.td:
+            s.ti+=1; s.tw_lbl.config(text=s.ttxt[:s.ti])
+            if s.ti>=len(s.ttxt): s.td=True; s.root.after(2800,s._twk); return
+            s.root.after(65,s._twk)
         else:
-            colors = ["#c0a050", "#a08030", "#806020", "#605020"]
-            self.color = random.choice(colors)
+            s.ti-=1; s.tw_lbl.config(text=s.ttxt[:s.ti])
+            if s.ti<=0: s.td=False; s.root.after(700,s._twk); return
+            s.root.after(30,s._twk)
 
-    def update(self, time_val, mx, my):
-        self.x += self.speed_x
-        self.y += self.speed_y + math.sin(time_val * self.wave_freq + self.wave_offset) * 0.5
+    # Drop
+    def _drop(s):
+        s.root.drop_target_register(DND_FILES)
+        s.root.dnd_bind("<<Drop>>",s._ondrop)
+        s.root.dnd_bind("<<DragEnter>>",s._ondenter)
+        s.root.dnd_bind("<<DragLeave>>",s._ondleave)
+        s._ov=None
 
-        dx = mx - self.x
-        dy = my - self.y
-        dist = math.sqrt(dx*dx + dy*dy)
-        if dist < 150 and dist > 0:
-            force = (150 - dist) / 150 * 0.8
-            self.y += dy * force * 0.02
-            self.x += dx * force * 0.01
+    def _ondenter(s,e):
+        if s._ov: return
+        s._ov=Canvas(s.wrap,bg="#000000",highlightthickness=0)
+        s._ov.place(relx=0,rely=0,relwidth=1,relheight=1)
+        w=s.root.winfo_width(); h=s.root.winfo_height(); cx,cy=w//2,h//2
+        for i in range(5,0,-1): s._ov.create_rectangle(cx-220-i*12,cy-80-i*8,cx+220+i*12,cy+80+i*8,outline=GD,width=1)
+        s._ov.create_rectangle(cx-220,cy-80,cx+220,cy+80,fill=CD,outline=G,width=2)
+        s._ov.create_text(cx,cy-20,text="DROP FOLDER HERE",fill=G,font=("Segoe UI",20,"bold"))
+        s._ov.create_text(cx,cy+15,text="Release to scan & organize",fill=DM,font=("Segoe UI",11))
+        s._ov.drop_target_register(DND_FILES)
+        s._ov.dnd_bind("<<Drop>>",s._drop2)
 
-        if self.x > self.w + 20:
-            self.reset()
+    def _drop2(s,e):
+        s._killov(); p=e.data.strip("{}")
+        if os.path.isdir(p): s.folder.set(p); s._addrecent(p); s._scan(p)
 
+    def _ondleave(s,e): s._killov()
+    def _killov(s):
+        if s._ov: s._ov.destroy(); s._ov=None
+    def _ondrop(s,e):
+        s._killov(); p=e.data.strip("{}")
+        if os.path.isdir(p): s.folder.set(p); s._addrecent(p); s._scan(p)
 
-class Overlay:
-    def __init__(self, parent, on_drop):
-        self.parent = parent
-        self.on_drop = on_drop
-        self.visible = False
-        self.frame = None
+    def _addrecent(s,p):
+        if p in s.recent: s.recent.remove(p)
+        s.recent.insert(0,p); s.recent=s.recent[:5]; savej(RECENT,s.recent)
 
-    def show(self):
-        if self.visible:
-            return
-        self.visible = True
-        self.frame = Frame(self.parent, bg="#000000")
-        self.frame.place(relx=0, rely=0, relwidth=1, relheight=1)
-
-        inner = Frame(self.frame, bg="#1a1a1a",
-                     highlightbackground=GOLD, highlightthickness=2)
-        inner.place(relx=0.5, rely=0.5, anchor=CENTER, relwidth=0.5, relheight=0.4)
-
-        Label(inner, text="DROP FOLDER HERE",
-              font=("Segoe UI", 20, "bold"),
-              bg="#1a1a1a", fg=GOLD).pack(expand=True)
-
-        Label(inner, text="Release to scan and organize",
-              font=("Segoe UI", 11),
-              bg="#1a1a1a", fg=TEXT_DIM).pack(expand=True)
-
-        self.frame.drop_target_register(DND_FILES)
-        self.frame.dnd_bind("<<Drop>>", self._on_drop)
-        self.frame.bind("<Button-1>", lambda e: self.hide())
-
-    def _on_drop(self, event):
-        path = event.data.strip("{}")
-        self.hide()
-        if os.path.isdir(path):
-            self.on_drop(path)
-
-    def hide(self):
-        if self.visible and self.frame:
-            self.frame.destroy()
-            self.frame = None
-            self.visible = False
-
-
-class SmartFileOrganizer:
-    def __init__(self):
-        self.root = TkinterDnD.Tk()
-        self.root.title("Smart File Organizer")
-        self.root.geometry("920x720")
-        self.root.minsize(800, 600)
-        self.root.configure(bg=BG_DARK)
-
-        self.config = self.load_config()
-        self.recent_folders = self.load_recent()
-        self.selected_folder = StringVar(value="No folder selected")
-        self.file_stats = {}
-        self.undo_stack = []
-        self.log_entries = []
-        self.is_organizing = False
-        self.mouse_x = 0
-        self.mouse_y = 0
-        self.particles = []
-        self.anim_running = True
-        self.time_val = 0
-
-        self.overlay = Overlay(self.root, self.on_folder_dropped)
-
-        self.setup_ui()
-        self.setup_drop_target()
-        self.animate_background()
-        self.typewriter_title()
-        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
-
-    def load_config(self):
-        if os.path.exists(CONFIG_FILE):
-            try:
-                with open(CONFIG_FILE, "r") as f:
-                    return json.load(f)
-            except:
-                pass
-        return DEFAULT_CONFIG.copy()
-
-    def save_config(self):
-        with open(CONFIG_FILE, "w") as f:
-            json.dump(self.config, f, indent=4)
-
-    def load_recent(self):
-        if os.path.exists(RECENT_FILE):
-            try:
-                with open(RECENT_FILE, "r") as f:
-                    return json.load(f)
-            except:
-                pass
-        return []
-
-    def save_recent(self):
-        with open(RECENT_FILE, "w") as f:
-            json.dump(self.recent_folders, f)
-
-    def add_recent(self, folder):
-        if folder in self.recent_folders:
-            self.recent_folders.remove(folder)
-        self.recent_folders.insert(0, folder)
-        self.recent_folders = self.recent_folders[:5]
-        self.save_recent()
-        self.update_recent_menu()
-
-    def setup_ui(self):
-        self.main_frame = Frame(self.root, bg=BG_DARK)
-        self.main_frame.pack(fill=BOTH, expand=True)
-
-        self.bg_canvas = Canvas(self.main_frame, bg=BG_DARK, highlightthickness=0)
-        self.bg_canvas.place(x=0, y=0, relwidth=1, relheight=1)
-
-        self.content_frame = Frame(self.main_frame, bg=BG_DARK)
-        self.content_frame.place(relx=0.5, rely=0.5, anchor=CENTER, relwidth=0.85, relheight=0.92)
-
-        self.root.bind("<Motion>", self.on_mouse_move)
-        self.root.bind("<Control-Return>", lambda e: self.organize_files())
-
-        self.build_header()
-        self.build_folder_section()
-        self.build_stats_section()
-        self.build_progress_section()
-        self.build_buttons()
-        self.build_log_section()
-
-    def build_header(self):
-        header = Frame(self.content_frame, bg=BG_DARK)
-        header.pack(fill=X, pady=(0, 15))
-
-        self.title_text = "SMART FILE ORGANIZER"
-        self.title_display = ""
-        self.title_label = Label(header, text="",
-                                font=("Segoe UI", 24, "bold"),
-                                bg=BG_DARK, fg=GOLD)
-        self.title_label.pack()
-
-        self.subtitle_label = Label(header, text="Intelligent file management",
-                                   font=("Segoe UI", 10),
-                                   bg=BG_DARK, fg=TEXT_DIM)
-        self.subtitle_label.pack()
-
-    def typewriter_title(self):
-        self.tw_index = 0
-        self.twDeleting = False
-        self._typewriter_tick()
-
-    def _typewriter_tick(self):
-        if not self.anim_running:
-            return
-
-        if not self.twDeleting:
-            self.tw_index += 1
-            self.title_display = self.title_text[:self.tw_index]
-            self.title_label.config(text=self.title_display)
-
-            if self.tw_index >= len(self.title_text):
-                self.root.after(2000, self._start_delete)
-                return
-            self.root.after(80, self._typewriter_tick)
+    def _rmenu(s):
+        snd("ui")
+        m=Menu(s.root,bg=CD,fg=TX,activebackground=GD,activeforeground=BG,relief=FLAT,borderwidth=0)
+        if not s.recent: m.add_command(label="No recent folders",state=DISABLED)
         else:
-            self.tw_index -= 1
-            self.title_display = self.title_text[:self.tw_index]
-            self.title_label.config(text=self.title_display)
+            for p in s.recent: m.add_command(label=p,command=lambda f=p:s._selrecent(f))
+        m.tk_popup(s.root.winfo_rootx()+400,s.root.winfo_rooty()+200)
 
-            if self.tw_index <= 0:
-                self.twDeleting = False
-                self.root.after(500, self._typewriter_tick)
-                return
-            self.root.after(40, self._typewriter_tick)
+    def _selrecent(s,p):
+        if os.path.isdir(p): s.folder.set(p); s._scan(p); snd("ui")
 
-    def _start_delete(self):
-        self.twDeleting = True
-        self._typewriter_tick()
+    def _mm(s,e): s.mx=e.x; s.my=e.y
 
-    def build_folder_section(self):
-        folder_frame = Frame(self.content_frame, bg=BG_CARD,
-                           highlightbackground=BORDER, highlightthickness=1)
-        folder_frame.pack(fill=X, pady=(0, 15), ipady=12)
+    # Anim
+    def _anim(s):
+        if not s.run: return
+        s.bcv.delete("all")
+        w=s.root.winfo_width(); h=s.root.winfo_height()
+        if not s.parts:
+            for _ in range(35): s.parts.append(Particle(w,h))
+        s.t+=1
+        for p in s.parts:
+            p.w=w; p.h=h; p.tick(s.t,s.mx,s.my)
+            dx=s.mx-p.x; dy=s.my-p.y; d=math.sqrt(dx*dx+dy*dy)
+            glow=1+(200-d)/200*0.5 if d<200 else 1; sz=p.r*glow
+            if p.gold: s.bcv.create_oval(p.x-sz,p.y-sz,p.x+sz,p.y+sz,fill=p.col,outline="")
+            else: s.bcv.create_oval(p.x-sz*0.5,p.y-sz*0.5,p.x+sz*0.5,p.y+sz*0.5,fill=p.col,outline="")
+        for i,a in enumerate(s.parts):
+            if not a.gold: continue
+            for b in s.parts[i+1:i+4]:
+                if not b.gold: continue
+                dd=((a.x-b.x)**2+(a.y-b.y)**2)**0.5
+                if dd<140: s.bcv.create_line(a.x,a.y,b.x,b.y,fill=GD,width=1)
+        gx=w*0.15+(s.mx/w)*w*0.1; gy=h*0.25+(s.my/h)*h*0.08
+        for r in range(4):
+            sz=90+r*70; s.bcv.create_oval(gx-sz,gy-sz,gx+sz,gy+sz,fill="",outline=GD,width=1)
+        s.root.after(28,s._anim)
 
-        inner = Frame(folder_frame, bg=BG_CARD)
-        inner.pack(fill=X, padx=20, pady=10)
+    # Logic
+    def _browse(s):
+        p=filedialog.askdirectory(title="Select folder")
+        if p: s.folder.set(p); s._addrecent(p); s._scan(p)
 
-        Label(inner, text="TARGET FOLDER",
-              font=("Segoe UI", 10, "bold"),
-              bg=BG_CARD, fg=GOLD).pack(anchor=W)
-
-        row = Frame(inner, bg=BG_CARD)
-        row.pack(fill=X, pady=(8, 0))
-
-        self.folder_label = Label(row, textvariable=self.selected_folder,
-                                  font=("Consolas", 11),
-                                  bg=BG_INNER, fg=TEXT,
-                                  anchor=W, padx=12, pady=8)
-        self.folder_label.pack(side=LEFT, fill=X, expand=True)
-
-        self.recent_btn = Button(row, text="\u25BC", font=("Segoe UI", 8),
-                                bg=BG_INNER, fg=GOLD_DIM,
-                                activebackground=BORDER, activeforeground=GOLD,
-                                relief=FLAT, padx=8, pady=6,
-                                cursor="hand2", command=self.show_recent_menu)
-        self.recent_btn.pack(side=RIGHT, padx=(5, 0))
-
-        browse_btn = Button(row, text="BROWSE", font=("Segoe UI", 10, "bold"),
-                           bg=GOLD, fg=BG_DARK,
-                           activebackground=GOLD_BRIGHT, activeforeground=BG_DARK,
-                           relief=FLAT, padx=20, pady=8,
-                           cursor="hand2", command=self.browse_folder)
-        browse_btn.bind("<Enter>", lambda e: browse_btn.config(bg=GOLD_BRIGHT))
-        browse_btn.bind("<Leave>", lambda e: browse_btn.config(bg=GOLD))
-        browse_btn.pack(side=RIGHT, padx=(10, 0))
-
-    def show_recent_menu(self):
-        play_sound("click")
-        menu = Menu(self.root, bg=BG_CARD, fg=TEXT, activebackground=GOLD_DIM,
-                   activeforeground=BG_DARK, relief=FLAT, borderwidth=0)
-        if not self.recent_folders:
-            menu.add_command(label="No recent folders", state=DISABLED)
-        else:
-            for folder in self.recent_folders:
-                menu.add_command(label=folder,
-                               command=lambda f=folder: self.select_recent(f))
-        menu.tk_popup(self.recent_btn.winfo_rootx(),
-                     self.recent_btn.winfo_rooty() + 30)
-
-    def update_recent_menu(self):
-        pass
-
-    def select_recent(self, folder):
-        if os.path.isdir(folder):
-            self.selected_folder.set(folder)
-            self.scan_folder(folder)
-            play_sound("click")
-
-    def build_stats_section(self):
-        self.stats_frame = Frame(self.content_frame, bg=BG_CARD,
-                               highlightbackground=BORDER, highlightthickness=1)
-        self.stats_frame.pack(fill=X, pady=(0, 15), ipady=12)
-
-        inner = Frame(self.stats_frame, bg=BG_CARD)
-        inner.pack(fill=X, padx=20, pady=10)
-
-        Label(inner, text="FILE ANALYSIS",
-              font=("Segoe UI", 10, "bold"),
-              bg=BG_CARD, fg=GOLD).pack(anchor=W)
-
-        self.stats_grid = Frame(inner, bg=BG_CARD)
-        self.stats_grid.pack(fill=X, pady=(10, 0))
-
-        self.stat_cards = {}
-        categories = ["Total", "Images", "Documents", "Videos", "Audio", "Code", "Other"]
-        card_colors = [GOLD, "#c08030", "#a07020", "#806020", "#605020", "#504020", "#404040"]
-
-        for i, cat in enumerate(categories):
-            card = Frame(self.stats_grid, bg=BG_INNER,
-                        highlightbackground=BORDER, highlightthickness=1,
-                        cursor="hand2")
-            card.grid(row=i // 4, column=i % 4, padx=5, pady=5, sticky="nsew")
-            card.bind("<Enter>", lambda e, c=card: c.config(highlightbackground=GOLD_DIM))
-            card.bind("<Leave>", lambda e, c=card: c.config(highlightbackground=BORDER))
-
-            val = Label(card, text="0", font=("Segoe UI", 20, "bold"),
-                       bg=BG_INNER, fg=card_colors[i])
-            val.pack(pady=(10, 2))
-
-            lbl = Label(card, text=cat, font=("Segoe UI", 9),
-                       bg=BG_INNER, fg=TEXT_DIM)
-            lbl.pack(pady=(0, 10))
-
-            self.stat_cards[cat] = {"frame": card, "value": val, "color": card_colors[i]}
-
-        for i in range(4):
-            self.stats_grid.columnconfigure(i, weight=1)
-
-    def build_progress_section(self):
-        self.progress_frame = Frame(self.content_frame, bg=BG_DARK)
-
-        self.progress_bar_bg = Frame(self.progress_frame, bg=BG_INNER,
-                                    highlightbackground=BORDER, highlightthickness=1)
-        self.progress_bar_bg.pack(fill=X, ipady=3)
-
-        self.progress_fill = Frame(self.progress_bar_bg, bg=GOLD, height=6)
-        self.progress_fill.place(relx=0, rely=0, relwidth=0, relheight=1)
-
-        self.progress_label = Label(self.progress_frame, text="",
-                                   font=("Segoe UI", 9),
-                                   bg=BG_DARK, fg=TEXT_DIM)
-        self.progress_label.pack(anchor=W, pady=(5, 0))
-
-    def build_buttons(self):
-        btn_frame = Frame(self.content_frame, bg=BG_DARK)
-        btn_frame.pack(fill=X, pady=(0, 15))
-
-        self.organize_btn = Button(btn_frame, text="ORGANIZE FILES",
-                                  font=("Segoe UI", 13, "bold"),
-                                  bg=GOLD, fg=BG_DARK,
-                                  activebackground=GOLD_BRIGHT, activeforeground=BG_DARK,
-                                  relief=FLAT, padx=40, pady=12,
-                                  cursor="hand2", command=self.organize_files)
-        self.organize_btn.bind("<Enter>", lambda e: self.organize_btn.config(bg=GOLD_BRIGHT))
-        self.organize_btn.bind("<Leave>", lambda e: self.organize_btn.config(bg=GOLD))
-        self.organize_btn.pack(side=LEFT, padx=(0, 10))
-
-        self.undo_btn = Button(btn_frame, text="UNDO",
-                              font=("Segoe UI", 11, "bold"),
-                              bg=BG_INNER, fg=RED,
-                              activebackground=BG_CARD, activeforeground=RED,
-                              relief=FLAT, padx=20, pady=10,
-                              cursor="hand2", command=self.undo_organize,
-                              state=DISABLED)
-        self.undo_btn.pack(side=LEFT, padx=(0, 10))
-
-        self.export_btn = Button(btn_frame, text="EXPORT LOG",
-                                font=("Segoe UI", 11, "bold"),
-                                bg=BG_INNER, fg=PURPLE,
-                                activebackground=BG_CARD, activeforeground=PURPLE,
-                                relief=FLAT, padx=20, pady=10,
-                                cursor="hand2", command=self.export_log)
-        self.export_btn.pack(side=LEFT)
-
-        self.settings_btn = Button(btn_frame, text="SETTINGS",
-                                  font=("Segoe UI", 11, "bold"),
-                                  bg=BG_INNER, fg=CYAN,
-                                  activebackground=BG_CARD, activeforeground=CYAN,
-                                  relief=FLAT, padx=20, pady=10,
-                                  cursor="hand2", command=self.open_settings)
-        self.settings_btn.pack(side=LEFT, padx=(10, 0))
-
-    def build_log_section(self):
-        log_frame = Frame(self.content_frame, bg=BG_CARD,
-                         highlightbackground=BORDER, highlightthickness=1)
-        log_frame.pack(fill=BOTH, expand=True)
-
-        inner = Frame(log_frame, bg=BG_CARD)
-        inner.pack(fill=BOTH, expand=True, padx=20, pady=10)
-
-        Label(inner, text="ACTIVITY LOG",
-              font=("Segoe UI", 10, "bold"),
-              bg=BG_CARD, fg=GOLD).pack(anchor=W)
-
-        log_container = Frame(inner, bg=BG_INNER)
-        log_container.pack(fill=BOTH, expand=True, pady=(8, 0))
-
-        self.log_canvas = Canvas(log_container, bg=BG_INNER, highlightthickness=0)
-        scrollbar = Scrollbar(log_container, command=self.log_canvas.yview,
-                            bg=BORDER, troughcolor=BG_INNER)
-        self.log_inner = Frame(self.log_canvas, bg=BG_INNER)
-
-        self.log_inner.bind("<Configure>",
-                          lambda e: self.log_canvas.configure(scrollregion=self.log_canvas.bbox("all")))
-        self.log_canvas.create_window((0, 0), window=self.log_inner, anchor="nw")
-        self.log_canvas.configure(yscrollcommand=scrollbar.set)
-
-        scrollbar.pack(side=RIGHT, fill=Y)
-        self.log_canvas.pack(fill=BOTH, expand=True)
-
-        self.log_canvas.bind("<Enter>",
-                            lambda e: self.log_canvas.bind_all("<MouseWheel>", self._on_log_scroll))
-        self.log_canvas.bind("<Leave>",
-                            lambda e: self.log_canvas.unbind_all("<MouseWheel>"))
-
-    def _on_log_scroll(self, event):
-        self.log_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-    def setup_drop_target(self):
-        self.root.drop_target_register(DND_FILES)
-        self.root.dnd_bind("<<Drop>>", self.on_drop)
-        self.root.dnd_bind("<<DragEnter>>", self.on_drag_enter)
-        self.root.dnd_bind("<<DragLeave>>", self.on_drag_leave)
-
-    def on_drag_enter(self, event):
-        self.overlay.show()
-
-    def on_drag_leave(self, event):
-        pass
-
-    def on_drop(self, event):
-        self.overlay.hide()
-        path = event.data.strip("{}")
-        if os.path.isdir(path):
-            self.selected_folder.set(path)
-            self.add_recent(path)
-            self.scan_folder(path)
-
-    def on_folder_dropped(self, path):
-        self.selected_folder.set(path)
-        self.add_recent(path)
-        self.scan_folder(path)
-
-    def on_mouse_move(self, event):
-        self.mouse_x = event.x
-        self.mouse_y = event.y
-
-    def animate_background(self):
-        if not self.anim_running:
-            return
-
-        self.bg_canvas.delete("all")
-        w = self.root.winfo_width()
-        h = self.root.winfo_height()
-
-        if not self.particles:
-            for _ in range(35):
-                self.particles.append(FlowParticle(w, h))
-
-        self.time_val += 1
-
-        for p in self.particles:
-            p.w = w
-            p.h = h
-            p.update(self.time_val, self.mouse_x, self.mouse_y)
-
-            glow = 1.0
-            dx = self.mouse_x - p.x
-            dy = self.mouse_y - p.y
-            dist = math.sqrt(dx*dx + dy*dy)
-            if dist < 120:
-                glow = 1.0 + (120 - dist) / 120 * 0.5
-
-            size = p.size * glow
-            self.bg_canvas.create_oval(
-                p.x - size, p.y - size,
-                p.x + size, p.y + size,
-                fill=p.color, outline=""
-            )
-
-        for i, p1 in enumerate(self.particles):
-            for p2 in self.particles[i+1:i+4]:
-                dist = ((p1.x - p2.x)**2 + (p1.y - p2.y)**2) ** 0.5
-                if dist < 100:
-                    self.bg_canvas.create_line(
-                        p1.x, p1.y, p2.x, p2.y,
-                        fill=GOLD_DIM, width=1
-                    )
-
-        glow_x = w * 0.2 + (self.mouse_x - w * 0.2) * 0.03
-        glow_y = h * 0.3 + (self.mouse_y - h * 0.3) * 0.03
-        for r in range(3):
-            self.bg_canvas.create_oval(
-                glow_x - 150 - r*50, glow_y - 150 - r*50,
-                glow_x + 150 + r*50, glow_y + 150 + r*50,
-                fill="", outline=GOLD_DIM, width=1
-            )
-
-        self.root.after(33, self.animate_background)
-
-    def browse_folder(self):
-        play_sound("click")
-        folder = filedialog.askdirectory(title="Select folder to organize")
-        if folder:
-            self.selected_folder.set(folder)
-            self.add_recent(folder)
-            self.scan_folder(folder)
-
-    def scan_folder(self, folder):
-        self.file_stats = {}
-        for cat in self.config["categories"]:
-            self.file_stats[cat] = 0
-        self.file_stats["Other"] = 0
-
-        try:
-            files = [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
-        except Exception as e:
-            self.log_chat(f"Error scanning: {e}", "error")
-            return
-
+    def _scan(s,folder):
+        s.stats={c:0 for c in s.cfg}; s.stats["Other"]=0
+        try: files=[x for x in os.listdir(folder) if os.path.isfile(os.path.join(folder,x))]
+        except Exception as e: s._log(f"Error: {e}","err"); return
         for f in files:
-            ext = os.path.splitext(f)[1].lower()
-            found = False
-            for cat, exts in self.config["categories"].items():
-                if ext in exts:
-                    self.file_stats[cat] = self.file_stats.get(cat, 0) + 1
-                    found = True
-                    break
-            if not found:
-                self.file_stats["Other"] = self.file_stats.get("Other", 0) + 1
+            ext=os.path.splitext(f)[1].lower(); found=False
+            for c,exts in s.cfg.items():
+                if ext in exts: s.stats[c]+=1; found=True; break
+            if not found: s.stats["Other"]+=1
+        tot=sum(s.stats.values()); s._as("Total",tot)
+        for c in ["Images","Documents","Videos","Audio","Code","Other"]:
+            s._as(c,s.stats.get(c,0))
+        s._log(f"Scanned {os.path.basename(folder)} \u2014 {tot} files","info")
 
-        total = sum(self.file_stats.values())
-        self._animate_stat("Total", total)
-        for cat in ["Images", "Documents", "Videos", "Audio", "Code", "Other"]:
-            self._animate_stat(cat, self.file_stats.get(cat, 0))
+    def _as(s,cat,tgt):
+        v=s.sclbl.get(cat)
+        if not v: return
+        cur=int(v.cget("text") or "0")
+        if cur==tgt: return
+        step=1 if tgt>cur else -1
+        def tk(c=cur):
+            if c==tgt: v.config(text=str(tgt)); return
+            c+=step; v.config(text=str(c)); s.root.after(22,tk,c)
+        tk()
 
-        self.log_chat(f"Scanned {os.path.basename(folder)} — {total} files found", "info")
+    def _safe(s,dest,name):
+        p=os.path.join(dest,name)
+        if not os.path.exists(p): return p
+        n,e=os.path.splitext(name); i=1
+        while os.path.exists(p): p=os.path.join(dest,f"{n} ({i}){e}"); i+=1
+        return p
 
-    def _animate_stat(self, cat, target):
-        card = self.stat_cards.get(cat)
-        if not card:
-            return
-        current = int(card["value"].cget("text") or "0")
-        if current == target:
-            return
-        step = 1 if target > current else -1
-        def _tick(c=current):
-            if c == target:
-                card["value"].config(text=str(target))
-                return
-            c += step
-            card["value"].config(text=str(c))
-            self.root.after(30, _tick, c)
-        _tick()
+    def go(s):
+        f=s.folder.get()
+        if f=="No folder selected" or not os.path.isdir(f): messagebox.showwarning("No Folder","Select a folder!"); return
+        if s.busy: return
+        snd("ok"); s.busy=True; s._dis(s.go_btn)
+        s.pf.pack(fill=X,pady=(0,12)); s.plbl.config(text="Preparing...")
+        threading.Thread(target=s._work,args=(f,),daemon=True).start()
 
-    def get_safe_path(self, dest_folder, filename):
-        dest = os.path.join(dest_folder, filename)
-        if not os.path.exists(dest):
-            return dest
-        name, ext = os.path.splitext(filename)
-        counter = 1
-        while os.path.exists(dest):
-            dest = os.path.join(dest_folder, f"{name} ({counter}){ext}")
-            counter += 1
-        return dest
-
-    def organize_files(self):
-        folder = self.selected_folder.get()
-        if folder == "No folder selected" or not os.path.isdir(folder):
-            messagebox.showwarning("No Folder", "Please select a folder first!")
-            return
-        if self.is_organizing:
-            return
-
-        play_sound("click")
-        self.is_organizing = True
-        self.organize_btn.config(state=DISABLED, text="ORGANIZING...")
-        self.progress_frame.pack(fill=X, pady=(0, 10))
-        self.progress_label.config(text="Preparing...")
-
-        thread = threading.Thread(target=self._organize_thread, args=(folder,))
-        thread.daemon = True
-        thread.start()
-
-    def _organize_thread(self, folder):
-        self.undo_stack.clear()
-        moved = 0
-        failed = 0
-
-        try:
-            files = [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
-        except Exception as e:
-            self.root.after(0, self.log_chat, f"Error: {e}", "error")
-            self.root.after(0, self._organize_done)
-            return
-
-        total = len(files)
-        self.root.after(0, self.progress_label.config, {"text": f"0 / {total} files"})
-
-        for i, f in enumerate(files):
-            ext = os.path.splitext(f)[1].lower()
-            category = "Other"
-            for cat, exts in self.config["categories"].items():
-                if ext in exts:
-                    category = cat
-                    break
-
-            dest_dir = os.path.join(folder, category)
-            os.makedirs(dest_dir, exist_ok=True)
-
-            src = os.path.join(folder, f)
-            dest = self.get_safe_path(dest_dir, f)
-
+    def _work(s,folder):
+        s.undo=[]; moved=0; fail=0
+        try: files=[x for x in os.listdir(folder) if os.path.isfile(os.path.join(folder,x))]
+        except Exception as e: s.root.after(0,s._log,f"Error: {e}","err"); s.root.after(0,s._done); return
+        tot=len(files); s.root.after(0,s.plbl.config,{"text":f"0 / {tot} files"})
+        for i,f in enumerate(files):
+            ext=os.path.splitext(f)[1].lower(); cat="Other"
+            for c,exts in s.cfg.items():
+                if ext in exts: cat=c; break
+            d=os.path.join(folder,cat); os.makedirs(d,exist_ok=True)
+            src=os.path.join(folder,f); dst=s._safe(d,f)
             try:
-                shutil.move(src, dest)
-                self.undo_stack.append((dest, src))
-                moved += 1
-                timestamp = datetime.now().strftime("%H:%M:%S")
-                self.root.after(0, self.log_chat,
-                    f"{timestamp}  {f} \u2192 {category}", "moved")
-            except Exception as e:
-                failed += 1
-                self.root.after(0, self.log_chat,
-                    f"{datetime.now().strftime('%H:%M:%S')}  Failed: {f}", "error")
+                shutil.move(src,dst); s.undo.append((dst,src)); moved+=1
+                ts=datetime.now().strftime("%H:%M:%S")
+                s.root.after(0,s._log,f"{ts}  {f} \u2192 {cat}","ok")
+            except: fail+=1; s.root.after(0,s._log,f"{datetime.now().strftime('%H:%M:%S')}  Failed: {f}","err")
+            fr=(i+1)/tot; s.root.after(0,s._uprog,fr,i+1,tot)
+        s.root.after(0,s._done)
+        if fail==0: snd("ok"); s.root.after(0,s._log,f"\nDone! Moved {moved} files.","ok")
+        else: s.root.after(0,s._log,f"\nDone! Moved {moved}, failed {fail}.","err")
 
-            progress = (i + 1) / total
-            self.root.after(0, self._update_progress, progress, i + 1, total)
+    def _uprog(s,fr,c,t):
+        s.pbar.delete("all"); w=s.pbar.winfo_width()
+        s.pbar.create_rectangle(0,0,max(w*fr,1),10,fill=G,outline="")
+        s.plbl.config(text=f"{c} / {t} files")
 
-        self.root.after(0, self._organize_done)
-        if failed == 0:
-            play_sound("success")
-            self.root.after(0, self.log_chat, f"\nDone! Moved {moved} files.", "success")
-        else:
-            self.root.after(0, self.log_chat, f"\nDone! Moved {moved}, failed {failed}.", "error")
+    def _done(s):
+        s.busy=False; s._en(s.go_btn)
+        if s.undo: s._en(s.un_btn)
+        if s.folder.get()!="No folder selected": s._scan(s.folder.get())
+        s.root.after(3000,lambda:s.pf.pack_forget())
 
-    def _update_progress(self, fraction, current, total):
-        self.progress_fill.place(relx=0, rely=0, relwidth=fraction, relheight=1)
-        self.progress_label.config(text=f"{current} / {total} files")
-
-    def _organize_done(self):
-        self.is_organizing = False
-        self.organize_btn.config(state=NORMAL, text="ORGANIZE FILES")
-        if self.undo_stack:
-            self.undo_btn.config(state=NORMAL)
-        if self.selected_folder.get() != "No folder selected":
-            self.scan_folder(self.selected_folder.get())
-        self.root.after(2000, lambda: self.progress_frame.pack_forget())
-
-    def undo_organize(self):
-        if not self.undo_stack:
-            return
-
-        play_sound("click")
-        undone = 0
-        for dest, src in reversed(self.undo_stack):
+    def _undo(s):
+        if not s.undo: return
+        snd("ui"); n=0
+        for dst,src in reversed(s.undo):
             try:
-                if os.path.exists(dest):
-                    os.makedirs(os.path.dirname(src), exist_ok=True)
-                    shutil.move(dest, src)
-                    undone += 1
-                    timestamp = datetime.now().strftime("%H:%M:%S")
-                    self.log_chat(f"{timestamp}  Undid: {os.path.basename(dest)}", "undo")
-            except Exception as e:
-                self.log_chat(f"Undo failed: {e}", "error")
+                if os.path.exists(dst): os.makedirs(os.path.dirname(src),exist_ok=True); shutil.move(dst,src); n+=1
+                ts=datetime.now().strftime("%H:%M:%S"); s._log(f"{ts}  Undid: {os.path.basename(dst)}","#d0a030")
+            except: s._log("Undo failed","err")
+        s.undo.clear(); s._dis(s.un_btn); s._log(f"\nRestored {n} files.","#d0a030"); snd("ok")
+        if s.folder.get()!="No folder selected": s._scan(s.folder.get())
 
-        self.undo_stack.clear()
-        self.undo_btn.config(state=DISABLED)
-        self.log_chat(f"\nRestored {undone} files.", "undo")
-        play_sound("success")
+    def _export(s):
+        if not s.log_e: messagebox.showinfo("Empty","No log to export."); return
+        snd("ui")
+        p=filedialog.asksaveasfilename(defaultextension=".txt",filetypes=[("Text","*.txt")],title="Export Log")
+        if p:
+            with open(p,"w",encoding="utf-8") as f:
+                f.write("Smart File Organizer \u2014 Activity Log\n"+"="*50+"\n\n")
+                for e in s.log_e: f.write(e+"\n")
+            s._log(f"Exported to {os.path.basename(p)}","info"); snd("ok")
 
-        if self.selected_folder.get() != "No folder selected":
-            self.scan_folder(self.selected_folder.get())
+    def _settings(s):
+        snd("ui")
+        st=Toplevel(s.root); st.title("Settings"); st.geometry("560x560"); st.configure(bg=BG)
+        st.transient(s.root); st.grab_set()
+        Label(st,text="CUSTOM CATEGORIES",font=("Segoe UI",14,"bold"),bg=BG,fg=G).pack(pady=15)
+        ct=Frame(st,bg=BG); ct.pack(fill=BOTH,expand=True,padx=20)
+        cv=Canvas(ct,bg=BG,highlightthickness=0)
+        sb=Scrollbar(ct,orient="vertical",command=cv.yview)
+        sf=Frame(cv,bg=BG)
+        sf.bind("<Configure>",lambda e:cv.configure(scrollregion=cv.bbox("all")))
+        cv.create_window((0,0),window=sf,anchor="nw"); cv.configure(yscrollcommand=sb.set)
+        cv.pack(side=LEFT,fill=BOTH,expand=True); sb.pack(side=RIGHT,fill=Y)
+        ents={}
+        for cat,exts in s.cfg.items():
+            r=Frame(sf,bg=GL,highlightbackground=BD,highlightthickness=1); r.pack(fill=X,pady=3)
+            Label(r,text=cat,font=("Segoe UI",10,"bold"),bg=GL,fg=G,width=12,anchor=W).pack(side=LEFT,padx=8,pady=6)
+            e=Entry(r,font=("Consolas",10),bg=CD,fg=TX,insertbackground=G,relief=FLAT,highlightbackground=BD,highlightthickness=1)
+            e.insert(0,", ".join(exts)); e.pack(side=LEFT,fill=X,expand=True,padx=8,ipady=5); ents[cat]=e
+        def save():
+            for c,e in ents.items(): s.cfg[c]=[x.strip() for x in e.get().split(",") if x.strip()]
+            savej(CFG,s.cfg); s._log("Settings saved","info"); snd("ok"); st.destroy()
+            if s.folder.get()!="No folder selected": s._scan(s.folder.get())
+        s._gbtn(st,"SAVE",save,180,44).pack(pady=15)
 
-    def export_log(self):
-        if not self.log_entries:
-            messagebox.showinfo("No Log", "No log entries to export.")
-            return
+    def _log(s,msg,tag="info"):
+        s.log_e.append(msg)
+        b=Frame(s.lin,bg=GL); b.pack(fill=X,pady=2,padx=4)
+        cols={"ok":G,"err":"#d04040","info":"#50c0c8","#d0a030":"#d0a030"}
+        col=cols.get(tag,DM)
+        d=Canvas(b,width=6,height=6,bg=GL,highlightthickness=0)
+        d.create_oval(0,0,6,6,fill=col,outline=""); d.pack(side=LEFT,padx=(0,8),pady=5)
+        Label(b,text=msg,font=("Consolas",10),bg=GL,fg=col,anchor=W).pack(side=LEFT,fill=X)
+        s.lcv.update_idletasks(); s.lcv.yview_moveto(1.0)
 
-        play_sound("click")
-        path = filedialog.asksaveasfilename(
-            defaultextension=".txt",
-            filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
-            title="Export Log"
-        )
-        if path:
-            with open(path, "w", encoding="utf-8") as f:
-                f.write("Smart File Organizer - Activity Log\n")
-                f.write("=" * 50 + "\n\n")
-                for entry in self.log_entries:
-                    f.write(f"{entry}\n")
-            self.log_chat(f"Log exported to {os.path.basename(path)}", "info")
-            play_sound("success")
+    def _quit(s):
+        s.run=False; savej(CFG,s.cfg); savej(RECENT,s.recent); s.root.destroy()
 
-    def open_settings(self):
-        play_sound("click")
-        settings = Toplevel(self.root)
-        settings.title("Settings")
-        settings.geometry("520x520")
-        settings.configure(bg=BG_DARK)
-        settings.transient(self.root)
-        settings.grab_set()
+    def run_app(s): s.root.mainloop()
 
-        Label(settings, text="CUSTOM CATEGORIES",
-              font=("Segoe UI", 14, "bold"),
-              bg=BG_DARK, fg=GOLD).pack(pady=15)
-
-        container = Frame(settings, bg=BG_DARK)
-        container.pack(fill=BOTH, expand=True, padx=20)
-
-        canvas = Canvas(container, bg=BG_DARK, highlightthickness=0)
-        scrollbar = Scrollbar(container, orient="vertical", command=canvas.yview)
-        scroll_frame = Frame(canvas, bg=BG_DARK)
-
-        scroll_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        canvas.pack(side=LEFT, fill=BOTH, expand=True)
-        scrollbar.pack(side=RIGHT, fill=Y)
-
-        entries = {}
-        for cat, exts in self.config["categories"].items():
-            row = Frame(scroll_frame, bg=BG_INNER)
-            row.pack(fill=X, pady=3)
-
-            Label(row, text=cat, font=("Segoe UI", 10, "bold"),
-                 bg=BG_INNER, fg=GOLD, width=12, anchor=W).pack(side=LEFT, padx=5)
-
-            entry = Entry(row, font=("Consolas", 10),
-                         bg=BG_CARD, fg=TEXT,
-                         insertbackground=GOLD, relief=FLAT)
-            entry.insert(0, ", ".join(exts))
-            entry.pack(side=LEFT, fill=X, expand=True, padx=5, ipady=4)
-            entries[cat] = entry
-
-        def save_settings():
-            for cat, entry in entries.items():
-                exts = [e.strip() for e in entry.get().split(",") if e.strip()]
-                self.config["categories"][cat] = exts
-            self.save_config()
-            self.log_chat("Settings saved", "info")
-            play_sound("success")
-            settings.destroy()
-            if self.selected_folder.get() != "No folder selected":
-                self.scan_folder(self.selected_folder.get())
-
-        Button(settings, text="SAVE", font=("Segoe UI", 11, "bold"),
-              bg=GOLD, fg=BG_DARK,
-              activebackground=GOLD_BRIGHT, relief=FLAT,
-              padx=30, pady=8, cursor="hand2",
-              command=save_settings).pack(pady=15)
-
-    def log_chat(self, message, tag="info"):
-        self.log_entries.append(message)
-
-        bubble = Frame(self.log_inner, bg=BG_INNER)
-        bubble.pack(fill=X, pady=2, padx=5)
-
-        color_map = {
-            "moved": GREEN,
-            "error": RED,
-            "info": CYAN,
-            "undo": "#d0a030",
-            "success": GOLD
-        }
-        color = color_map.get(tag, TEXT_DIM)
-
-        dot = Canvas(bubble, width=8, height=8, bg=BG_INNER, highlightthickness=0)
-        dot.create_oval(1, 1, 7, 7, fill=color, outline="")
-        dot.pack(side=LEFT, padx=(0, 8), pady=4)
-
-        Label(bubble, text=message, font=("Consolas", 10),
-             bg=BG_INNER, fg=color, anchor=W).pack(side=LEFT, fill=X)
-
-        self.log_canvas.update_idletasks()
-        self.log_canvas.yview_moveto(1.0)
-
-    def on_close(self):
-        self.anim_running = False
-        self.save_config()
-        self.save_recent()
-        self.root.destroy()
-
-    def run(self):
-        self.root.mainloop()
-
-
-if __name__ == "__main__":
-    app = SmartFileOrganizer()
-    app.run()
+if __name__=="__main__":
+    App().run_app()

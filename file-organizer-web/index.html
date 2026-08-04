@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart File Organizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+
+<div class="app">
+    <header class="header">
+        <h1 class="title" id="title"></h1>
+        <div class="divider"></div>
+        <p class="subtitle">Premium File Management</p>
+    </header>
+
+    <section class="card folder-card">
+        <div class="card-label">TARGET FOLDER</div>
+        <div class="folder-row">
+            <div class="folder-path" id="folderPath">No folder selected</div>
+            <div class="folder-actions">
+                <button class="recent-btn" id="recentBtn">&#9662;</button>
+                <button class="gold-btn" id="browseBtn">BROWSE</button>
+            </div>
+        </div>
+        <div class="recent-dropdown" id="recentDropdown">
+            <div class="recent-item disabled">No recent folders</div>
+        </div>
+    </section>
+
+    <section class="card stats-card">
+        <div class="card-label">FILE ANALYSIS</div>
+        <div class="stats-grid">
+            <div class="stat-box" data-cat="Total">
+                <div class="stat-val" id="statTotal">0</div>
+                <div class="stat-lbl">Total</div>
+            </div>
+            <div class="stat-box" data-cat="Images">
+                <div class="stat-val" id="statImages">0</div>
+                <div class="stat-lbl">Images</div>
+            </div>
+            <div class="stat-box" data-cat="Documents">
+                <div class="stat-val" id="statDocuments">0</div>
+                <div class="stat-lbl">Documents</div>
+            </div>
+            <div class="stat-box" data-cat="Videos">
+                <div class="stat-val" id="statVideos">0</div>
+                <div class="stat-lbl">Videos</div>
+            </div>
+            <div class="stat-box" data-cat="Audio">
+                <div class="stat-val" id="statAudio">0</div>
+                <div class="stat-lbl">Audio</div>
+            </div>
+            <div class="stat-box" data-cat="Code">
+                <div class="stat-val" id="statCode">0</div>
+                <div class="stat-lbl">Code</div>
+            </div>
+            <div class="stat-box" data-cat="Other">
+                <div class="stat-val" id="statOther">0</div>
+                <div class="stat-lbl">Other</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="btn-row">
+        <button class="gold-btn large" id="organizeBtn">ORGANIZE FILES</button>
+        <button class="outline-btn red" id="undoBtn" disabled>UNDO</button>
+        <button class="outline-btn purple" id="exportBtn">EXPORT</button>
+        <button class="outline-btn cyan" id="settingsBtn">SETTINGS</button>
+    </div>
+
+    <div class="progress-wrap" id="progressWrap">
+        <div class="progress-bar-bg">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">0 / 0 files</div>
+    </div>
+
+    <section class="card log-card">
+        <div class="card-label">ACTIVITY LOG</div>
+        <div class="log-scroll" id="logScroll">
+            <div class="log-empty">Drop a folder or click BROWSE to start...</div>
+        </div>
+    </section>
+</div>
+
+<!-- Drop Overlay -->
+<div class="drop-overlay" id="dropOverlay">
+    <div class="drop-box">
+        <div class="drop-rings">
+            <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+        </div>
+        <div class="drop-inner">
+            <div class="drop-text">DROP FOLDER HERE</div>
+            <div class="drop-sub">Release to scan & organize</div>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-bg" id="settingsModal">
+    <div class="modal">
+        <div class="modal-title">CUSTOM CATEGORIES</div>
+        <div class="modal-scroll" id="settingsList"></div>
+        <button class="gold-btn" id="saveSettings">SAVE</button>
+    </div>
+</div>
+
+<!-- Hidden file input -->
+<input type="file" id="fileInput" webkitdirectory multiple style="display:none">
+
+<script src="app.js"></script>
+</body>
+</html>
