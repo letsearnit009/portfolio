@@ -1,0 +1,233 @@
+﻿*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#0a0e1a;--bg2:rgba(15,20,40,.85);--bgc:rgba(18,25,50,.7);--bgh:rgba(25,35,65,.8);
+--tx:#e8f0ff;--tx2:#7a8ba8;--ac:#00d4aa;--ac2:#00f5c8;
+--grn:#00e89d;--red:#ff3c78;--org:#ffb347;--pur:#a855f7;--cyn:#00e5ff;--pnk:#ff006e;
+--bdr:rgba(0,212,170,.12);--glow:rgba(0,232,157,.4);
+--glass:rgba(10,18,35,.65);--gb:rgba(0,212,170,.1);
+}
+[data-theme="light"]{
+--bg:#e8f0f5;--bg2:rgba(255,255,255,.9);--bgc:rgba(255,255,255,.8);--bgh:rgba(240,245,250,.9);
+--tx:#0a1628;--tx2:#5a6a80;--bdr:rgba(0,180,140,.15);--glass:rgba(255,255,255,.7);--gb:rgba(0,180,140,.2)
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden}
+
+/* Weather Background */
+.weather-bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;overflow:hidden;pointer-events:none;transition:background 2s ease}
+.weather-bg.sunny{background:linear-gradient(180deg,#1a1a3e 0%,#2d1b4e 30%,#4a2c6e 60%,#1a1a3e 100%)}
+.weather-bg.cloudy{background:linear-gradient(180deg,#1a1a2e 0%,#2a2a3e 50%,#1a1a2e 100%)}
+.weather-bg.rainy{background:linear-gradient(180deg,#0a0a1a 0%,#1a1a2e 50%,#0a0a1a 100%)}
+.weather-bg.snowy{background:linear-gradient(180deg,#1a1a3e 0%,#2a2a4e 50%,#1a1a3e 100%)}
+.weather-bg.stormy{background:linear-gradient(180deg,#050510 0%,#1a0a20 50%,#050510 100%)}
+
+/* Sun */
+.sun{position:absolute;top:-100px;right:100px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,#ffd700,#ff8c00);box-shadow:0 0 100px #ffd700,0 0 200px #ff8c00,0 0 300px rgba(255,215,0,.3);opacity:0;transition:opacity 2s;animation:sunPulse 4s ease-in-out infinite}
+.weather-bg.sunny .sun{opacity:1}
+@keyframes sunPulse{0%,100%{transform:scale(1);box-shadow:0 0 100px #ffd700,0 0 200px #ff8c00}50%{transform:scale(1.05);box-shadow:0 0 120px #ffd700,0 0 240px #ff8c00,0 0 360px rgba(255,215,0,.4)}}
+
+/* Clouds */
+.cloud{position:absolute;background:white;border-radius:100px;opacity:0;transition:opacity 2s}
+.cloud::before,.cloud::after{content:'';position:absolute;background:inherit;border-radius:50%}
+.cloud-1{width:200px;height:60px;top:80px;left:-200px;animation:cloudMove 25s linear infinite}
+.cloud-1::before{width:100px;height:80px;top:-40px;left:30px}
+.cloud-1::after{width:120px;height:70px;top:-30px;left:80px}
+.cloud-2{width:160px;height:50px;top:150px;left:-160px;animation:cloudMove 35s linear infinite;animation-delay:-10s}
+.cloud-2::before{width:80px;height:60px;top:-30px;left:20px}
+.cloud-2::after{width:90px;height:55px;top:-25px;left:60px}
+.cloud-3{width:180px;height:55px;top:50px;left:-180px;animation:cloudMove 30s linear infinite;animation-delay:-20s}
+.cloud-3::before{width:90px;height:70px;top:-35px;left:25px}
+.cloud-3::after{width:100px;height:60px;top:-28px;left:70px}
+@keyframes cloudMove{from{transform:translateX(0)}to{transform:translateX(calc(100vw + 400px))}}
+.weather-bg.sunny .cloud{opacity:.3;background:rgba(255,255,255,.4)}
+.weather-bg.cloudy .cloud{opacity:.8}
+.weather-bg.rainy .cloud{opacity:.9;background:rgba(150,150,170,.8)}
+.weather-bg.stormy .cloud{opacity:1;background:rgba(80,80,100,.9)}
+
+/* Rain */
+.rain-container{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity 1s}
+.weather-bg.rainy .rain-container,.weather-bg.stormy .rain-container{opacity:1}
+.raindrop{position:absolute;width:2px;background:linear-gradient(transparent,rgba(174,194,224,.6));animation:rainFall linear infinite}
+@keyframes rainFall{0%{transform:translateY(-100px)}100%{transform:translateY(100vh)}}
+
+/* Snow */
+.snow-container{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity 1s}
+.weather-bg.snowy .snow-container{opacity:1}
+.snowflake{position:absolute;color:white;font-size:1rem;opacity:.8;animation:snowFall linear infinite}
+@keyframes snowFall{0%{transform:translateY(-50px) rotate(0deg)}100%{transform:translateY(100vh) rotate(360deg)}}
+
+/* Thunder */
+.thunder-flash{position:absolute;top:0;left:0;width:100%;height:100%;background:white;opacity:0;pointer-events:none;transition:opacity .05s}
+.thunder-flash.flash{opacity:.3}
+
+#weatherParticles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none}
+
+/* App Container */
+.app-container{position:relative;z-index:2;max-width:800px;margin:0 auto;padding:20px;min-height:100vh}
+
+/* Header */
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px}
+.logo{font-size:1.4rem;font-weight:700;background:linear-gradient(135deg,var(--ac),var(--cyn),var(--pur));background-size:200% 200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:gShift 4s ease infinite}
+@keyframes gShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.header-actions{display:flex;gap:8px}
+.unit-toggle,.theme-toggle{width:44px;height:44px;border-radius:12px;border:1px solid var(--gb);background:var(--glass);backdrop-filter:blur(12px);color:var(--tx);font-size:1.1rem;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center}
+.unit-toggle:hover,.theme-toggle:hover{border-color:var(--ac);box-shadow:0 0 20px var(--glow);transform:translateY(-2px)}
+
+/* Search */
+.search-section{margin-bottom:30px}
+.search-box{display:flex;gap:8px;position:relative}
+.search-box input{flex:1;padding:16px 20px;background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--gb);border-radius:14px;color:var(--tx);font-size:1rem;outline:none;transition:all .3s}
+.search-box input:focus{border-color:var(--ac);box-shadow:0 0 30px var(--glow)}
+.search-btn{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--grn),var(--pur));border:none;color:white;font-size:1.2rem;cursor:pointer;transition:all .3s}
+.search-btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px var(--glow)}
+.location-btn{padding:16px 20px;border-radius:14px;background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--gb);color:var(--tx);cursor:pointer;transition:all .3s;white-space:nowrap;font-size:.9rem}
+.location-btn:hover{border-color:var(--ac);box-shadow:0 0 20px var(--glow)}
+
+.recent-searches{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+.recent-tag{padding:8px 16px;background:var(--bgc);border:1px solid var(--gb);border-radius:20px;font-size:.85rem;color:var(--tx2);cursor:pointer;transition:all .3s}
+.recent-tag:hover{border-color:var(--ac);color:var(--tx);transform:translateY(-2px)}
+
+/* Loading */
+.loading-screen{text-align:center;padding:80px 20px}
+.loader{width:60px;height:60px;border:3px solid var(--gb);border-top-color:var(--ac);border-radius:50%;margin:0 auto 20px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-screen p{color:var(--tx2)}
+
+/* Error */
+.error-screen{text-align:center;padding:80px 20px}
+.error-icon{font-size:4rem;display:block;margin-bottom:16px}
+.error-screen h3{margin-bottom:8px;color:var(--red)}
+.error-screen p{color:var(--tx2)}
+
+/* Weather Content */
+.weather-content{animation:fadeUp .6s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+
+/* Main Weather Card */
+.main-weather-card{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--gb);border-radius:24px;padding:32px;margin-bottom:24px;position:relative;overflow:hidden;animation:cardFloat 6s ease-in-out infinite}
+.main-weather-card::before{content:'';position:absolute;top:-50%;right:-30%;width:300px;height:300px;background:radial-gradient(circle,rgba(0,229,255,.08),transparent);border-radius:50%;animation:cardGlow 8s ease-in-out infinite}
+@keyframes cardFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes cardGlow{0%,100%{transform:translate(0,0)}50%{transform:translate(-30px,20px)}}
+
+.weather-header{display:flex;justify-content:space-between;align-items:start;margin-bottom:24px}
+.location-info h2{font-size:1.4rem;font-weight:700;margin-bottom:4px}
+.location-info p{font-size:.85rem;color:var(--tx2)}
+.fav-btn{width:44px;height:44px;border-radius:12px;border:1px solid var(--gb);background:transparent;font-size:1.3rem;cursor:pointer;transition:all .3s}
+.fav-btn:hover{transform:scale(1.1)}
+.fav-btn.active{background:rgba(255,0,110,.15);border-color:var(--pnk)}
+
+.weather-main{text-align:center;margin-bottom:32px}
+.weather-icon-large{font-size:6rem;margin-bottom:10px;display:block;animation:iconBounce 3s ease-in-out infinite;filter:drop-shadow(0 0 30px rgba(255,215,0,.3))}
+@keyframes iconBounce{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-10px) scale(1.05)}}
+.temp-display{display:flex;align-items:flex-start;justify-content:center;gap:4px;margin-bottom:8px}
+.temp-value{font-size:5rem;font-weight:800;background:linear-gradient(135deg,var(--tx),var(--cyn));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.temp-unit{font-size:2rem;font-weight:600;color:var(--tx2);margin-top:8px}
+.weather-desc{font-size:1.2rem;font-weight:600;margin-bottom:4px;text-transform:capitalize}
+.feels-like{font-size:.9rem;color:var(--tx2)}
+
+.weather-details{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.detail-item{background:var(--bgc);border:1px solid var(--gb);border-radius:14px;padding:16px;text-align:center;transition:all .3s}
+.detail-item:hover{border-color:var(--ac);transform:translateY(-3px);box-shadow:0 8px 25px rgba(0,0,0,.2)}
+.detail-icon{font-size:1.5rem;display:block;margin-bottom:6px}
+.detail-label{font-size:.75rem;color:var(--tx2);display:block;margin-bottom:4px}
+.detail-value{font-size:1rem;font-weight:600}
+
+/* Forecast Cards */
+.forecast-card{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--gb);border-radius:20px;padding:24px;margin-bottom:20px}
+.forecast-card h3{font-size:1rem;font-weight:600;margin-bottom:16px;background:linear-gradient(135deg,var(--tx),var(--ac));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+.hourly-scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;scrollbar-width:thin;scrollbar-color:var(--ac) transparent}
+.hourly-scroll::-webkit-scrollbar{height:4px}
+.hourly-scroll::-webkit-scrollbar-thumb{background:var(--ac);border-radius:2px}
+.hourly-item{flex-shrink:0;text-align:center;padding:14px 16px;background:var(--bgc);border:1px solid var(--gb);border-radius:14px;min-width:80px;transition:all .3s}
+.hourly-item:hover{border-color:var(--ac);transform:translateY(-3px)}
+.hourly-item.now{border-color:var(--ac);background:linear-gradient(135deg,rgba(0,232,157,.1),rgba(168,85,247,.08))}
+.hourly-time{font-size:.8rem;color:var(--tx2);margin-bottom:6px}
+.hourly-icon{font-size:1.5rem;margin-bottom:6px;display:block}
+.hourly-temp{font-size:1.1rem;font-weight:600}
+
+.daily-forecast{display:flex;flex-direction:column;gap:10px}
+.daily-item{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bgc);border:1px solid var(--gb);border-radius:14px;transition:all .3s}
+.daily-item:hover{border-color:var(--ac);transform:translateX(5px)}
+.daily-day{font-weight:600;width:60px}
+.daily-icon{font-size:1.5rem;width:40px;text-align:center}
+.daily-temps{display:flex;gap:12px;font-size:.95rem}
+.daily-high{font-weight:600}
+.daily-low{color:var(--tx2)}
+
+/* Favorites */
+.favorites-card{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--gb);border-radius:20px;padding:24px;margin-bottom:20px}
+.favorites-card h3{font-size:1rem;font-weight:600;margin-bottom:16px;background:linear-gradient(135deg,var(--tx),var(--ac));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.favorites-list{display:flex;gap:10px;flex-wrap:wrap}
+.fav-city{padding:10px 18px;background:var(--bgc);border:1px solid var(--gb);border-radius:12px;cursor:pointer;transition:all .3s;display:flex;align-items:center;gap:8px}
+.fav-city:hover{border-color:var(--ac);transform:translateY(-2px);box-shadow:0 4px 15px rgba(0,0,0,.2)}
+.fav-remove{color:var(--red);cursor:pointer;font-size:.8rem}
+
+@media(max-width:768px){
+.weather-details{grid-template-columns:repeat(2,1fr)}
+.search-box{flex-wrap:wrap}
+.location-btn{width:100%}
+.temp-value{font-size:4rem}
+.weather-icon-large{font-size:4.5rem}
+}
+@media(max-width:480px){
+.app-container{padding:12px}
+.main-weather-card{padding:24px 16px}
+.weather-details{grid-template-columns:repeat(2,1fr);gap:8px}
+.detail-item{padding:12px 8px}
+}
+
+/* 3D Parallax Clouds */
+.cloud-4{width:140px;height:45px;top:200px;left:-140px;animation:cloudMove 40s linear infinite;animation-delay:-5s}
+.cloud-4::before{width:70px;height:55px;top:-28px;left:18px}
+.cloud-4::after{width:80px;height:50px;top:-22px;left:50px}
+.cloud-5{width:120px;height:40px;top:120px;left:-120px;animation:cloudMove 45s linear infinite;animation-delay:-15s}
+.cloud-5::before{width:60px;height:48px;top:-24px;left:15px}
+.cloud-5::after{width:70px;height:42px;top:-20px;left:45px}
+
+/* Sunrise Gradient Sun */
+.sun{position:absolute;top:auto;bottom:-150px;left:50%;transform:translateX(-50%);width:300px;height:300px;border-radius:50%;opacity:0;transition:all 2s}
+.sun::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:100%;height:100%;border-radius:50%;background:radial-gradient(circle,#ffd700 0%,#ff8c00 40%,rgba(255,140,0,0) 70%);animation:sunPulse 4s ease-in-out infinite}
+.sun::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:200%;height:200%;border-radius:50%;background:radial-gradient(circle,rgba(255,215,0,.15) 0%,rgba(255,140,0,.05) 50%,transparent 70%);animation:sunRays 6s ease-in-out infinite}
+.weather-bg.sunny .sun{opacity:1;bottom:-80px}
+@keyframes sunPulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.1)}}
+@keyframes sunRays{0%,100%{transform:translate(-50%,-50%) rotate(0deg) scale(1)}50%{transform:translate(-50%,-50%) rotate(180deg) scale(1.15)}}
+
+/* 3D Carousel for Hourly */
+.hourly-scroll{display:flex;perspective:800px;gap:16px;overflow-x:auto;padding:20px 10px;scrollbar-width:none}
+.hourly-scroll::-webkit-scrollbar{display:none}
+.hourly-item{flex-shrink:0;text-align:center;padding:18px 16px;background:var(--bgc);border:1px solid var(--gb);border-radius:16px;min-width:90px;transition:all .4s cubic-bezier(.4,0,.2,1);transform-style:preserve-3d;cursor:pointer}
+.hourly-item:hover{transform:translateZ(20px) rotateY(-5deg) scale(1.08);border-color:var(--ac);box-shadow:0 15px 40px rgba(0,0,0,.3),0 0 25px var(--glow)}
+.hourly-item.now{border-color:var(--ac);background:linear-gradient(135deg,rgba(0,232,157,.12),rgba(168,85,247,.08));transform:translateZ(10px)}
+.hourly-item:nth-child(odd){transform:rotateY(2deg)}
+.hourly-item:nth-child(even){transform:rotateY(-2deg)}
+
+/* Glitch Error Effect */
+.error-screen{position:relative}
+.error-screen.glitch{animation:glitchIn .5s ease}
+@keyframes glitchIn{
+0%{transform:translate(0);filter:hue-rotate(0deg)}
+10%{transform:translate(-5px,3px);filter:hue-rotate(90deg)}
+20%{transform:translate(5px,-3px);filter:hue-rotate(180deg);clip-path:inset(20% 0 40% 0)}
+30%{transform:translate(-3px,5px);filter:hue-rotate(270deg);clip-path:inset(60% 0 10% 0)}
+40%{transform:translate(3px,-5px);filter:hue-rotate(360deg);clip-path:inset(10% 0 70% 0)}
+50%{transform:translate(0);filter:hue-rotate(0deg);clip-path:none}
+60%{transform:translate(2px,2px);clip-path:inset(30% 0 30% 0)}
+70%{transform:translate(-2px,-2px);clip-path:none}
+80%{transform:translate(1px,-1px)}
+90%{transform:translate(-1px,1px)}
+100%{transform:translate(0)}
+}
+.error-icon{animation:glitchIcon 2s infinite}
+@keyframes glitchIcon{
+0%,90%,100%{transform:translate(0)}
+92%{transform:translate(-3px,2px)}
+94%{transform:translate(3px,-2px)}
+96%{transform:translate(-2px,-1px)}
+98%{transform:translate(2px,1px)}
+}
+.error-screen::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg,transparent 40%,rgba(255,0,110,.03) 50%,transparent 60%);animation:scanline 3s linear infinite;pointer-events:none}
+@keyframes scanline{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+
+/* Enhanced Card Float */
+.main-weather-card:hover{transform:translateY(-8px) rotateX(2deg);box-shadow:0 25px 60px rgba(0,0,0,.4),0 0 50px var(--glow)}
+.forecast-card:hover{transform:translateY(-4px);box-shadow:0 15px 40px rgba(0,0,0,.3),0 0 30px var(--glow)}

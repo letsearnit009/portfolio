@@ -1,0 +1,126 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="weather-bg" id="weatherBg">
+        <div class="cloud cloud-1" data-depth="0.2"></div>
+        <div class="cloud cloud-2" data-depth="0.4"></div>
+        <div class="cloud cloud-3" data-depth="0.6"></div>
+        <div class="cloud cloud-4" data-depth="0.8"></div>
+        <div class="cloud cloud-5" data-depth="1.0"></div>
+        <div class="sun" id="sunEl"></div>
+        <div class="rain-container" id="rainContainer"></div>
+        <div class="snow-container" id="snowContainer"></div>
+        <div class="thunder-flash" id="thunderFlash"></div>
+    </div>
+    <canvas id="weatherParticles"></canvas>
+
+    <div class="app-container">
+        <header class="header">
+            <h1 class="logo">🌤️ WeatherFlow</h1>
+            <div class="header-actions">
+                <button class="unit-toggle" id="unitToggle">°C</button>
+                <button class="theme-toggle" id="themeToggle">🌙</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Search Section -->
+            <div class="search-section">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search city..." autocomplete="off">
+                    <button class="search-btn" id="searchBtn">🔍</button>
+                    <button class="location-btn" id="locationBtn">📍 Use my location</button>
+                </div>
+                <div class="recent-searches" id="recentSearches" style="display:none;"></div>
+            </div>
+
+            <!-- Loading -->
+            <div class="loading-screen" id="loadingScreen" style="display:none;">
+                <div class="loader"></div>
+                <p>Fetching weather data...</p>
+            </div>
+
+            <!-- Error -->
+            <div class="error-screen" id="errorScreen" style="display:none;">
+                <span class="error-icon">⚠️</span>
+                <h3 id="errorMessage">City not found</h3>
+                <p>Try searching for another city</p>
+            </div>
+
+            <!-- Weather Content -->
+            <div class="weather-content" id="weatherContent" style="display:none;">
+                <!-- Main Weather Card -->
+                <div class="main-weather-card">
+                    <div class="weather-header">
+                        <div class="location-info">
+                            <h2 id="cityName">Mumbai, India</h2>
+                            <p id="dateTime"></p>
+                        </div>
+                        <button class="fav-btn" id="favBtn">🤍</button>
+                    </div>
+
+                    <div class="weather-main">
+                        <div class="weather-icon-large" id="weatherIconLarge">☀️</div>
+                        <div class="temp-display">
+                            <span class="temp-value" id="tempValue">29</span>
+                            <span class="temp-unit" id="tempUnit">°C</span>
+                        </div>
+                        <div class="weather-desc" id="weatherDesc">Sunny</div>
+                        <div class="feels-like" id="feelsLike">Feels like 31°C</div>
+                    </div>
+
+                    <div class="weather-details">
+                        <div class="detail-item">
+                            <span class="detail-icon">💧</span>
+                            <span class="detail-label">Humidity</span>
+                            <span class="detail-value" id="humidity">72%</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-icon">💨</span>
+                            <span class="detail-label">Wind</span>
+                            <span class="detail-value" id="wind">12 km/h</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-icon">🌡️</span>
+                            <span class="detail-label">Pressure</span>
+                            <span class="detail-value" id="pressure">1012 hPa</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-icon">👁️</span>
+                            <span class="detail-label">Visibility</span>
+                            <span class="detail-value" id="visibility">8 km</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hourly Forecast -->
+                <div class="forecast-card" style="perspective:800px">
+                    <h3>Today's Forecast</h3>
+                    <div class="hourly-scroll" id="hourlyForecast"></div>
+                </div>
+
+                <!-- 5-Day Forecast -->
+                <div class="forecast-card">
+                    <h3>5-Day Forecast</h3>
+                    <div class="daily-forecast" id="dailyForecast"></div>
+                </div>
+
+                <!-- Favorites -->
+                <div class="favorites-card" id="favoritesCard" style="display:none;">
+                    <h3>Favorite Cities</h3>
+                    <div class="favorites-list" id="favoritesList"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
