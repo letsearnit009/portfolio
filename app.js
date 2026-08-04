@@ -94,9 +94,9 @@ function renderRepos(repos) {
         return;
     }
 
-    const jarvisCard = grid.querySelector('.featured');
+    const featuredCards = grid.querySelectorAll('.featured');
     grid.innerHTML = '';
-    if (jarvisCard) grid.appendChild(jarvisCard);
+    featuredCards.forEach(card => grid.appendChild(card));
 
     const repoCards = repos.map(repo => {
         const lang = repo.language || 'Unknown';
