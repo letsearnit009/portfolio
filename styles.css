@@ -212,6 +212,103 @@ body {
     background: rgba(108, 92, 231, 0.1);
 }
 
+.btn-resume {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--accent);
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-resume:hover {
+    background: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px var(--accent-glow);
+}
+
+/* Availability Section */
+.availability {
+    padding: 60px 0;
+}
+
+.availability-card {
+    background: var(--bg-card);
+    border: 1px solid var(--accent);
+    border-radius: 16px;
+    padding: 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.availability-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-1);
+}
+
+.availability-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(108, 92, 231, 0.15);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    margin-bottom: 20px;
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: #00ff88;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.availability-card h2 {
+    font-size: 1.8rem;
+    margin-bottom: 12px;
+    background: var(--gradient-1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.availability-card p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin-bottom: 24px;
+}
+
+.availability-tags {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+.avail-tag {
+    padding: 8px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
 .hero-avatar {
     flex: 0 0 auto;
     margin-left: 60px;
@@ -464,6 +561,83 @@ body {
     gap: 4px;
     font-size: 0.85rem;
     color: var(--text-secondary);
+}
+
+.project-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.project-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.btn-demo {
+    background: var(--gradient-1);
+    color: white;
+}
+
+.btn-demo:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--accent-glow);
+}
+
+.btn-github {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+.btn-github:hover {
+    border-color: var(--accent);
+    background: rgba(108, 92, 231, 0.1);
+}
+
+/* Testimonials */
+.testimonials {
+    padding: 120px 0;
+}
+
+.testimonials-note {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-bottom: 40px;
+}
+
+.testimonial-placeholder {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 48px;
+    background: var(--bg-card);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+}
+
+.testimonial-placeholder p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    font-style: italic;
+    margin-bottom: 16px;
+}
+
+.placeholder-name {
+    color: var(--accent);
+    font-size: 0.9rem;
 }
 
 /* Contact */
