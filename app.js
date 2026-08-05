@@ -37,14 +37,8 @@ async function fetchGitHubProfile() {
 }
 
 async function fetchGitHubRepos() {
-    try {
-        const res = await fetch(`${API_BASE}/users/${GITHUB_USERNAME}/repos?sort=updated&per_page=100`);
-        if (!res.ok) throw new Error('Failed to fetch repos');
-        return await res.json();
-    } catch (err) {
-        console.error('Repos fetch error:', err);
-        return [];
-    }
+    // Skip fetching repos - all 9 featured projects are hardcoded in HTML
+    return [];
 }
 
 async function fetchAllLanguages(repos) {
