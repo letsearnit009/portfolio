@@ -685,11 +685,78 @@ body {
 
 /* Footer */
 footer {
-    padding: 32px;
+    padding: 48px 32px;
     text-align: center;
     color: var(--text-secondary);
     font-size: 0.9rem;
     border-top: 1px solid var(--border);
+    background: var(--bg-secondary);
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.footer-text {
+    font-size: 1rem;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+}
+
+.footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.footer-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s;
+}
+
+.footer-links a:hover {
+    color: var(--accent);
+}
+
+.footer-copy {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+/* Availability Inline (Hero) */
+.availability-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(108, 92, 231, 0.12);
+    border: 1px solid rgba(108, 92, 231, 0.3);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: var(--accent);
+    margin-bottom: 16px;
+}
+
+.availability-inline .pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: #00ff88;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
 }
 
 /* Loading */
