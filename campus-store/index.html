@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CampusStore - Shop Smart</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- BG -->
+<div class="app-bg">
+    <div class="orb"></div><div class="orb"></div><div class="orb"></div>
+    <div class="emoji-float">📓</div><div class="emoji-float">✏️</div>
+    <div class="emoji-float">📚</div><div class="emoji-float">🎒</div>
+    <div class="emoji-float">📐</div><div class="emoji-float">💡</div>
+</div>
+
+<!-- Toast -->
+<div class="toast-container" id="toasts"></div>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <div class="nav-inner">
+        <a href="#" class="logo" onclick="goHome()"><i class="fas fa-store"></i> CampusStore</a>
+        <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Search notebooks, pens, books..." onkeyup="searchProducts()">
+        </div>
+        <div class="nav-links">
+            <a href="#" onclick="goHome()"><i class="fas fa-home"></i> Home</a>
+            <a href="#" onclick="showPage('wishlist')"><i class="fas fa-heart"></i> <span id="wishlistCount">0</span></a>
+            <a href="#" onclick="showPage('cart')"><i class="fas fa-shopping-cart"></i> <span id="cartCount">0</span></a>
+            <div id="authLinks">
+                <a href="#" onclick="showPage('login')"><i class="fas fa-user"></i> Login</a>
+            </div>
+            <div id="userLinks" style="display:none">
+                <a href="#" onclick="showPage('orders')"><i class="fas fa-box"></i> Orders</a>
+                <a href="#" onclick="showPage('admin')" id="adminLink" style="display:none"><i class="fas fa-cog"></i> Admin</a>
+                <a href="#" onclick="logout()" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a>
+            </div>
+        </div>
+        <button class="mobile-menu" onclick="toggleMobile()"><i class="fas fa-bars"></i></button>
+    </div>
+</nav>
+
+<!-- PAGES -->
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+    <div class="hero-section">
+        <h1 class="hero-title">Campus <span class="green">Store</span></h1>
+        <p class="hero-sub">Everything you need for college — notebooks, pens, books & more</p>
+        <button class="btn-green" onclick="document.getElementById('products').scrollIntoView({behavior:'smooth'})">Shop Now <i class="fas fa-arrow-down"></i></button>
+    </div>
+
+    <div class="categories-bar">
+        <button class="cat-btn active" onclick="filterCategory('all')">All</button>
+        <button class="cat-btn" onclick="filterCategory('notebooks')">📓 Notebooks</button>
+        <button class="cat-btn" onclick="filterCategory('pens')">✏️ Pens</button>
+        <button class="cat-btn" onclick="filterCategory('books')">📚 Books</button>
+        <button class="cat-btn" onclick="filterCategory('accessories')">🎒 Accessories</button>
+        <button class="cat-btn" onclick="filterCategory('stationery')">📐 Stationery</button>
+    </div>
+
+    <div class="sort-bar">
+        <select onchange="sortProducts(this.value)" class="sort-select">
+            <option value="default">Sort by: Featured</option>
+            <option value="low">Price: Low to High</option>
+            <option value="high">Price: High to Low</option>
+            <option value="name">Name: A to Z</option>
+            <option value="rating">Rating</option>
+        </select>
+    </div>
+
+    <div class="products-grid" id="productsGrid"></div>
+    <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- PRODUCT DETAIL -->
+<div class="page" id="page-detail">
+    <div class="detail-container" id="productDetail"></div>
+</div>
+
+<!-- CART -->
+<div class="page" id="page-cart">
+    <div class="container">
+        <h2 class="page-title"><i class="fas fa-shopping-cart"></i> Your Cart</h2>
+        <div id="cartContent"></div>
+    </div>
+</div>
+
+<!-- WISHLIST -->
+<div class="page" id="page-wishlist">
+    <div class="container">
+        <h2 class="page-title"><i class="fas fa-heart"></i> Wishlist</h2>
+        <div id="wishlistContent"></div>
+    </div>
+</div>
+
+<!-- CHECKOUT -->
+<div class="page" id="page-checkout">
+    <div class="container">
+        <h2 class="page-title"><i class="fas fa-credit-card"></i> Checkout</h2>
+        <div id="checkoutContent"></div>
+    </div>
+</div>
+
+<!-- ORDERS -->
+<div class="page" id="page-orders">
+    <div class="container">
+        <h2 class="page-title"><i class="fas fa-box"></i> My Orders</h2>
+        <div id="ordersContent"></div>
+    </div>
+</div>
+
+<!-- LOGIN -->
+<div class="page" id="page-login">
+    <div class="auth-card">
+        <h2><i class="fas fa-sign-in-alt"></i> Login</h2>
+        <form onsubmit="return handleLogin(event)">
+            <div class="input-group">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="loginEmail" placeholder="Email" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="loginPass" placeholder="Password" required>
+            </div>
+            <button type="submit" class="btn-green full">Login</button>
+            <p class="auth-link">Don't have an account? <a href="#" onclick="showPage('register')">Register</a></p>
+        </form>
+    </div>
+</div>
+
+<!-- REGISTER -->
+<div class="page" id="page-register">
+    <div class="auth-card">
+        <h2><i class="fas fa-user-plus"></i> Register</h2>
+        <form onsubmit="return handleRegister(event)">
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" id="regName" placeholder="Full Name" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="regEmail" placeholder="Email" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="regPass" placeholder="Password" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-phone"></i>
+                <input type="text" id="regPhone" placeholder="Phone (for UPI)" required>
+            </div>
+            <button type="submit" class="btn-green full">Register</button>
+            <p class="auth-link">Already have an account? <a href="#" onclick="showPage('login')">Login</a></p>
+        </form>
+    </div>
+</div>
+
+<!-- ADMIN -->
+<div class="page" id="page-admin">
+    <div class="container">
+        <h2 class="page-title"><i class="fas fa-cog"></i> Admin Dashboard</h2>
+        <div class="admin-stats" id="adminStats"></div>
+        <div class="admin-actions">
+            <button class="btn-green" onclick="showAddProduct()"><i class="fas fa-plus"></i> Add Product</button>
+        </div>
+        <div class="admin-section">
+            <h3>Products</h3>
+            <div id="adminProducts"></div>
+        </div>
+        <div class="admin-section">
+            <h3>Orders</h3>
+            <div id="adminOrders"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ADD/EDIT PRODUCT MODAL -->
+<div class="modal-bg" id="productModal">
+    <div class="modal-card">
+        <h3 id="modalTitle">Add Product</h3>
+        <form onsubmit="return saveProduct(event)">
+            <input type="hidden" id="editId">
+            <div class="input-group">
+                <i class="fas fa-tag"></i>
+                <input type="text" id="pName" placeholder="Product Name" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa rupee-sign">₹</i>
+                <input type="number" id="pPrice" placeholder="Price" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-list"></i>
+                <select id="pCategory" required>
+                    <option value="">Category</option>
+                    <option value="notebooks">Notebooks</option>
+                    <option value="pens">Pens</option>
+                    <option value="books">Books</option>
+                    <option value="accessories">Accessories</option>
+                    <option value="stationery">Stationery</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-star"></i>
+                <input type="number" id="pRating" placeholder="Rating (0-5)" min="0" max="5" step="0.1" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-box"></i>
+                <input type="number" id="pStock" placeholder="Stock" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-image"></i>
+                <input type="text" id="pImage" placeholder="Image URL (emoji or link)">
+            </div>
+            <div class="input-group">
+                <i class="fas fa-info-circle"></i>
+                <textarea id="pDesc" placeholder="Description" rows="3"></textarea>
+            </div>
+            <div class="modal-btns">
+                <button type="submit" class="btn-green">Save</button>
+                <button type="button" class="btn-outline" onclick="closeModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

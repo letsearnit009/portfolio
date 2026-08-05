@@ -89,16 +89,16 @@ function updateProfile(profile) {
 function renderRepos(repos) {
     const grid = document.getElementById('projects-grid');
 
-    if (!repos.length) {
-        grid.innerHTML = '<div class="loading"><p>No repositories found.</p></div>';
-        return;
-    }
-
     const featuredCards = grid.querySelectorAll('.featured');
     grid.innerHTML = '';
     featuredCards.forEach(card => grid.appendChild(card));
 
-    const repoCards = repos.map(repo => {
+    const skipRepos = ['alfred-ai-assistant','portfolio','campus-store','student-expense-manager','smart-study-planner','student-portal','freelance-hub','weather-dashboard','smart-file-organizer'];
+    const filtered = repos.filter(r => !skipRepos.includes(r.name));
+
+    if (!filtered.length) return;
+
+    const repoCards = filtered.map(repo => {
         const lang = repo.language || 'Unknown';
         const langColor = LANG_COLORS[lang] || LANG_COLORS.default;
         const desc = repo.description || 'No description provided.';

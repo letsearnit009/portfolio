@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FreelanceHub - Manage Your Freelance Business</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="app-bg">
+    <div class="orb"></div><div class="orb"></div><div class="orb"></div>
+    <div class="emoji-bg">💼</div><div class="emoji-bg">💰</div>
+    <div class="emoji-bg">📊</div><div class="emoji-bg">🧾</div>
+    <div class="emoji-bg">🎯</div><div class="emoji-bg">🚀</div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-icon"><i class="fas fa-briefcase"></i></div>
+        <span>FreelanceHub</span>
+    </div>
+    <div class="nav-links">
+        <a class="nav-link active" onclick="showPage('dashboard')"><i class="fas fa-th-large"></i> Dashboard</a>
+        <a class="nav-link" onclick="showPage('clients')"><i class="fas fa-users"></i> Clients</a>
+        <a class="nav-link" onclick="showPage('projects')"><i class="fas fa-folder-open"></i> Projects</a>
+        <a class="nav-link" onclick="showPage('invoices')"><i class="fas fa-file-invoice"></i> Invoices</a>
+        <a class="nav-link" onclick="showPage('income')"><i class="fas fa-chart-line"></i> Income</a>
+    </div>
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar"><i class="fas fa-user"></i></div>
+            <div>
+                <div class="user-name">Yadneah</div>
+                <div class="user-role">Freelancer</div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+        <button class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+        <h2 class="page-title" id="pageTitle">Dashboard</h2>
+        <div class="topbar-actions">
+            <button class="btn-green" onclick="showAddClient()"><i class="fas fa-plus"></i> New Client</button>
+            <button class="btn-green" onclick="showAddProject()"><i class="fas fa-plus"></i> New Project</button>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(0,200,150,0.1);color:var(--green)"><i class="fas fa-rupee-sign"></i></div>
+                <div><div class="stat-val" id="totalRevenue">₹0</div><div class="stat-lbl">Total Revenue</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(208,168,48,0.1);color:var(--yellow)"><i class="fas fa-spinner"></i></div>
+                <div><div class="stat-val" id="activeProjects">0</div><div class="stat-lbl">Active Projects</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(208,72,72,0.1);color:var(--red)"><i class="fas fa-clock"></i></div>
+                <div><div class="stat-val" id="pendingPayments">₹0</div><div class="stat-lbl">Pending Payments</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(0,200,150,0.1);color:var(--green)"><i class="fas fa-check-circle"></i></div>
+                <div><div class="stat-val" id="completedProjects">0</div><div class="stat-lbl">Completed Projects</div></div>
+            </div>
+        </div>
+        <div class="dashboard-grid">
+            <div class="dash-card">
+                <h3><i class="fas fa-clock"></i> Recent Projects</h3>
+                <div id="recentProjects"></div>
+            </div>
+            <div class="dash-card">
+                <h3><i class="fas fa-users"></i> Recent Clients</h3>
+                <div id="recentClients"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CLIENTS -->
+    <div class="page" id="page-clients">
+        <div class="page-header">
+            <h3>Clients</h3>
+            <button class="btn-green" onclick="showAddClient()"><i class="fas fa-plus"></i> Add Client</button>
+        </div>
+        <div id="clientsList"></div>
+    </div>
+
+    <!-- PROJECTS -->
+    <div class="page" id="page-projects">
+        <div class="page-header">
+            <h3>Projects</h3>
+            <button class="btn-green" onclick="showAddProject()"><i class="fas fa-plus"></i> Add Project</button>
+        </div>
+        <div id="projectsList"></div>
+    </div>
+
+    <!-- INVOICES -->
+    <div class="page" id="page-invoices">
+        <div class="page-header">
+            <h3>Invoices</h3>
+            <button class="btn-green" onclick="showAddInvoice()"><i class="fas fa-plus"></i> Create Invoice</button>
+        </div>
+        <div id="invoicesList"></div>
+    </div>
+
+    <!-- INCOME -->
+    <div class="page" id="page-income">
+        <div class="stats-grid" style="margin-bottom:24px">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(0,200,150,0.1);color:var(--green)"><i class="fas fa-rupee-sign"></i></div>
+                <div><div class="stat-val" id="monthIncome">₹0</div><div class="stat-lbl">This Month</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(0,200,150,0.1);color:var(--green)"><i class="fas fa-chart-bar"></i></div>
+                <div><div class="stat-val" id="yearIncome">₹0</div><div class="stat-lbl">This Year</div></div>
+            </div>
+        </div>
+        <div class="dash-card">
+            <h3><i class="fas fa-history"></i> Payment History</h3>
+            <div id="paymentHistory"></div>
+        </div>
+    </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-bg" id="clientModal">
+    <div class="modal-card">
+        <h3 id="clientModalTitle">Add Client</h3>
+        <form onsubmit="return saveClient(event)">
+            <input type="hidden" id="editClientId">
+            <div class="input-group"><i class="fas fa-user"></i><input type="text" id="cName" placeholder="Client Name" required></div>
+            <div class="input-group"><i class="fas fa-envelope"></i><input type="email" id="cEmail" placeholder="Email" required></div>
+            <div class="input-group"><i class="fas fa-phone"></i><input type="text" id="cPhone" placeholder="Phone" required></div>
+            <div class="input-group"><i class="fas fa-building"></i><input type="text" id="cCompany" placeholder="Company (optional)"></div>
+            <div class="modal-btns">
+                <button type="submit" class="btn-green">Save</button>
+                <button type="button" class="btn-outline" onclick="closeModal('clientModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-bg" id="projectModal">
+    <div class="modal-card">
+        <h3 id="projectModalTitle">Add Project</h3>
+        <form onsubmit="return saveProject(event)">
+            <input type="hidden" id="editProjectId">
+            <div class="input-group"><i class="fas fa-folder"></i><input type="text" id="prName" placeholder="Project Name" required></div>
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <select id="prClient" required><option value="">Select Client</option></select>
+            </div>
+            <div class="input-group"><i class="fas fa-rupee-sign"></i><input type="number" id="prBudget" placeholder="Budget (₹)" required></div>
+            <div class="input-group"><i class="fas fa-calendar"></i><input type="date" id="prDeadline" required></div>
+            <div class="input-group">
+                <i class="fas fa-tag"></i>
+                <select id="prStatus">
+                    <option value="Inquiry">Inquiry</option>
+                    <option value="Discussion">Discussion</option>
+                    <option value="Accepted">Accepted</option>
+                    <option value="Development" selected>Development</option>
+                    <option value="Review">Review</option>
+                    <option value="Completed">Completed</option>
+                </select>
+            </div>
+            <div class="input-group"><i class="fas fa-rupee-sign"></i><input type="number" id="prPaid" placeholder="Amount Paid (₹)" value="0"></div>
+            <div class="input-group"><i class="fas fa-info-circle"></i><textarea id="prDesc" placeholder="Description" rows="2"></textarea></div>
+            <div class="modal-btns">
+                <button type="submit" class="btn-green">Save</button>
+                <button type="button" class="btn-outline" onclick="closeModal('projectModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-bg" id="invoiceModal">
+    <div class="modal-card">
+        <h3>Create Invoice</h3>
+        <form onsubmit="return saveInvoice(event)">
+            <div class="input-group">
+                <i class="fas fa-folder"></i>
+                <select id="invProject" required><option value="">Select Project</option></select>
+            </div>
+            <div id="invoiceItems">
+                <div class="invoice-item-row">
+                    <input type="text" placeholder="Service name" class="inv-item-name" required>
+                    <input type="number" placeholder="Amount" class="inv-item-amount" required>
+                    <button type="button" class="btn-red" onclick="removeInvItem(this)"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <button type="button" class="btn-outline" onclick="addInvItem()" style="margin-bottom:14px"><i class="fas fa-plus"></i> Add Item</button>
+            <div class="modal-btns">
+                <button type="submit" class="btn-green">Generate Invoice</button>
+                <button type="button" class="btn-outline" onclick="closeModal('invoiceModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-bg" id="invoiceViewModal">
+    <div class="modal-card" style="max-width:500px">
+        <div id="invoiceViewContent"></div>
+        <div class="modal-btns" style="margin-top:16px">
+            <button class="btn-green" onclick="printInvoice()"><i class="fas fa-print"></i> Print</button>
+            <button class="btn-outline" onclick="closeModal('invoiceViewModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-bg" id="clientViewModal">
+    <div class="modal-card" style="max-width:500px">
+        <div id="clientViewContent"></div>
+        <div class="modal-btns" style="margin-top:16px">
+            <button class="btn-outline" onclick="closeModal('clientViewModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
